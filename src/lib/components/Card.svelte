@@ -8,8 +8,8 @@
 
 <div>
 	{#if !found}
-	<button on:click>
-		<img src={imgUrl} alt="test" style={"display": flipped ? "block" : "none"}>
+	<button on:click disabled={flipped}>
+		<img src={imgUrl} alt="test" style:display={flipped ? "block" : "none"}>
 	</button>
 	{:else}
 		<p>found</p>

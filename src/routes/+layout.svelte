@@ -1,8 +1,12 @@
 <script>
-	import Card from "$lib/components/Card.svelte"
-    import { imgUrls } from "$lib/stores.js"
+    import { imgUrls } from "$lib/stores.js";
 
-    let imgs = [
+    let creatingNewPack = false;
+    let imgs = [];
+
+    $: urls = Array.from(imgs).map(img => URL.createObjectURL(img))
+
+    let packs = [[ //default pack included
         "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
         "https://cdn.worldvectorlogo.com/logos/next-js.svg",
         "https://angular.io/assets/images/logos/angularjs/AngularJS-Shield.svg",
@@ -11,107 +15,121 @@
         "https://emberjs.com/images/brand/ember-tomster-lockup-4c.svg",
         "https://cdn.worldvectorlogo.com/logos/meteor-icon.svg",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/NestJS.svg/1200px-NestJS.svg.png"
-    ]
+    ]];
 
-    imgUrls.subscribe((urls) => {
-        if (urls.length === 8) { //change length handling later
-            startNewGame(urls);
-        }
-    })
-
-
-
-	function createCards(imgs) {
-		const cards = [];
-		for (let i = 0; i < imgs.length * 2; i+=2) {
-			const imgUrl = imgs[i / 2];
-			cards.push([imgUrl, i, i], [imgUrl, i + 1, i]); //imgUrl, imgId, groupId
-		}
-
-		return cards
-	}
-
-	let cards = createCards(imgs);
-
-	function shuffleCards() {
-		for (let i = cards.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[cards[i], cards[j]] = [cards[j], cards[i]]
-		}
-
-	}
-
-	shuffleCards();
-
-	let flippedCards = {};
-	let alreadyFound = [];
-	let flippingEnabled = true;
-	
-	function handleCardFlip(cardId, groupId) {
-		if (!flippingEnabled) return;
-
-		const flippedCardsValues = Object.values(flippedCards);
-		
-		if (flippedCardsValues.length === 0) {
-			flippedCards = {[cardId]: groupId};
-		} else if (flippedCardsValues.length === 1 && Object.keys(flippedCards)[0] === cardId) {
-			console.log("Cannot click the same card twice!");
-		} else if (flippedCardsValues.length === 1 && flippedCardsValues[0] === groupId) {
-			console.log("Cards of the same group found!");
-			
-			if (alreadyFound.length === imgs.length - 1) {
-				startNewGame(imgs);
-				return;
-			}
-			
-			flippedCards = {...flippedCards, [cardId]: groupId};
-
-			flippingEnabled = false;
-			setTimeout(() => {
-				flippingEnabled = true
-				flippedCards = {};
-				alreadyFound = [...alreadyFound, groupId];
-			}, 1000);
-			
-		} else {
-			console.log("Cards of different groups found!");
-			flippedCards = {...flippedCards, [cardId]: groupId};
-
-			flippingEnabled = false;
-			setTimeout(() => {
-				flippingEnabled = true;
-				flippedCards = {};
-			}, 1000);
-		}
-	} 
-
-    function startNewGame(urls) {
-        imgs = urls;
-        flippedCards = {};
-        alreadyFound = [];
-        imgs = urls;
-        cards = createCards(urls);
-        shuffleCards();
-        flippingEnabled = true;
-    }
-	
+    let showed = true;
 </script>
 
-<div class="container">
-	{#each cards as [cardImg, cardId, groupId]}
-		<Card 
-			imgUrl = {cardImg} 
-			flipped = {Object.keys(flippedCards).includes(String(cardId))}
-			found = {alreadyFound.includes(groupId)}
-			on:click={() => handleCardFlip(cardId, groupId)}
-		/>
-	{/each}
+<header>
+    <h1>Pexeso</h1>
+    <uL>
+        <li on:click={() => {showed = true}}>Add Cards</li>
+    </uL>
+</header>
+
+
+<div class="add-cards-container {showed && "show"}">
+    <form class="add-cards-inner">
+        <header>
+            <input type="text" placeholder="Filter...">
+            {#if creatingNewPack}
+                <button on:click={() => {
+                    packs = [...packs, urls];
+                    imgs = [];
+
+                    creatingNewPack = false;
+                }}>Save</button>
+            {:else}
+                <button on:click={() => creatingNewPack = true}>Create new pack</button>
+            {/if}
+        </header>
+        {#if creatingNewPack}
+            <input type="file" name="img" id="img" accept="img/jpeg, img/png" multiple bind:files={imgs}>
+        {/if}
+
+        {#if creatingNewPack}
+            {#each urls as url}
+                <img src={url} alt="preview">
+            {/each}
+        {:else if packs.length > 0}
+            {#each packs as pack}
+                <img src={pack[0]} alt="preview">
+                <button class="play-with-pack-btn" on:click={() => {
+                    if (pack.length !== 8) { //change handling later
+                        console.log("wrong length") 
+                    } else {
+                        imgUrls.update(() => pack);
+                        showed = false;
+                    }
+
+                }}>Play with pack</button>
+            {/each}
+        {/if}
+    </form>
 </div>
 
+<slot></slot>
+
+
 <style>
-	.container {
-		display: grid;
-		grid-template-columns: repeat(4, 200px);
-		gap: 2rem;
-	}
+    * {
+        margin: 0;
+        padding: 0;
+    }
+
+
+    header {
+        display: flex;
+        width: 100%;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    ul {
+        list-style-type: none;
+    }
+
+    li {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .add-cards-container {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 100vw;
+        background-color: rgba(0, 0, 0, 0.4);
+        background-blend-mode: darken;
+    }
+
+    .show {
+        display: flex;
+    }
+
+    .add-cards-inner {
+        min-height: 60vh;
+        max-height: 70vh;
+        overflow-y: scroll;
+        min-width: max(20vw, 400px);
+        background-color: #fff;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    img {
+        height: 200px;
+        width: 200px;
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+    }
 </style>
