@@ -1,11 +1,6 @@
 <script>
     import { imgUrls } from "$lib/stores.js";
 
-    let creatingNewPack = false;
-    let imgs = [];
-
-    $: urls = Array.from(imgs).map(img => URL.createObjectURL(img))
-
     let packs = [[ //default pack included
         "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
         "https://cdn.worldvectorlogo.com/logos/next-js.svg",
@@ -17,18 +12,23 @@
         "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/NestJS.svg/1200px-NestJS.svg.png"
     ]];
 
-    let showed = true;
+    let imgs = [];
+    $: urls = Array.from(imgs).map(img => URL.createObjectURL(img))
+
+    let inPackMenu = true;
+    let creatingNewPack = false;
 </script>
 
 <header>
     <h1>Pexeso</h1>
-    <uL>
-        <li on:click={() => {showed = true}}>Add Cards</li>
-    </uL>
+    <ul>
+        <li>Leaderboards</li>
+        <li on:click={() => {inPackMenu = true}}>Add Cards</li>
+    </ul>
 </header>
 
 
-<div class="add-cards-container {showed && "show"}">
+<div class="add-cards-container {inPackMenu && "show"}">
     <form class="add-cards-inner">
         <header>
             <input type="text" placeholder="Filter...">
@@ -59,7 +59,7 @@
                         console.log("wrong length") 
                     } else {
                         imgUrls.update(() => pack);
-                        showed = false;
+                        inPackMenu = false;
                     }
 
                 }}>Play with pack</button>
@@ -86,6 +86,8 @@
     }
 
     ul {
+        display: flex;
+        gap: 2rem;
         list-style-type: none;
     }
 

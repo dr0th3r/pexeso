@@ -2,6 +2,10 @@
 	import Card from "$lib/components/Card.svelte"
     import { imgUrls } from "$lib/stores.js"
 
+	let flippedCards = {};
+	let alreadyFound = [];
+	let flippingEnabled = true;
+
     let imgs = [
         "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
         "https://cdn.worldvectorlogo.com/logos/next-js.svg",
@@ -15,11 +19,11 @@
 
     imgUrls.subscribe((urls) => {
         if (urls.length === 8) { //change length handling later
-            startNewGame(urls);
+			imgs = urls;
+			const cards = createCards(urls);
+            startNewGame(cards);
         }
     })
-
-
 
 	function createCards(imgs) {
 		const cards = [];
@@ -33,19 +37,25 @@
 
 	let cards = createCards(imgs);
 
-	function shuffleCards() {
+	function shuffleCards(cards) {
 		for (let i = cards.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[cards[i], cards[j]] = [cards[j], cards[i]]
 		}
-
+		return cards
 	}
 
-	shuffleCards();
+	cards = shuffleCards(cards);
 
-	let flippedCards = {};
-	let alreadyFound = [];
-	let flippingEnabled = true;
+
+	//statistics
+	let currentlyFoundInRow = 0;
+	const mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow"))
+	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, mostFoundInRowLocalStorage));
+	let pexesosSolved = localStorage.getItem("mostFoundInRow");
+
+	$: localStorage.setItem("mostFoundInRow", mostFoundInRow);
+	$: localStorage.setItem("pexesosSolved", pexesosSolved);
 	
 	function handleCardFlip(cardId, groupId) {
 		if (!flippingEnabled) return;
@@ -54,13 +64,17 @@
 		
 		if (flippedCardsValues.length === 0) {
 			flippedCards = {[cardId]: groupId};
-		} else if (flippedCardsValues.length === 1 && Object.keys(flippedCards)[0] === cardId) {
+		} 
+		else if (flippedCardsValues.length === 1 && Object.keys(flippedCards)[0] === cardId) {
 			console.log("Cannot click the same card twice!");
-		} else if (flippedCardsValues.length === 1 && flippedCardsValues[0] === groupId) {
+		} 
+		else if (flippedCardsValues.length === 1 && flippedCardsValues[0] === groupId) {
 			console.log("Cards of the same group found!");
+			currentlyFoundInRow++;
 			
 			if (alreadyFound.length === imgs.length - 1) {
-				startNewGame(imgs);
+				pexesosSolved++;
+				startNewGame(cards);
 				return;
 			}
 			
@@ -71,10 +85,12 @@
 				flippingEnabled = true
 				flippedCards = {};
 				alreadyFound = [...alreadyFound, groupId];
-			}, 1000);
-			
-		} else {
+			}, 1000);	
+		} 
+		else {
 			console.log("Cards of different groups found!");
+			currentlyFoundInRow = 0;
+
 			flippedCards = {...flippedCards, [cardId]: groupId};
 
 			flippingEnabled = false;
@@ -85,13 +101,10 @@
 		}
 	} 
 
-    function startNewGame(urls) {
-        imgs = urls;
+    function startNewGame(cards) {
         flippedCards = {};
         alreadyFound = [];
-        imgs = urls;
-        cards = createCards(urls);
-        shuffleCards();
+        cards = shuffleCards(cards)
         flippingEnabled = true;
     }
 	
@@ -106,6 +119,12 @@
 			on:click={() => handleCardFlip(cardId, groupId)}
 		/>
 	{/each}
+</div>
+
+<div class="statistics">
+	<p>Found in a row: {currentlyFoundInRow} pair{currentlyFoundInRow !== 1 ? "s" : ""}</p>
+	<p>Most found in row: {mostFoundInRow} pair{mostFoundInRow !== 1 ? "s" : ""}</p>
+	<p>You solved {pexesosSolved} pexeso{pexesosSolved !== 1 ? "s" : ""}</p>
 </div>
 
 <style>
