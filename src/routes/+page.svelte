@@ -1,6 +1,7 @@
 <script>
 	import Card from "$lib/components/Card.svelte"
     import { imgUrls } from "$lib/stores.js"
+	import { createUserStatisticsStore } from "$lib/stores.js"
 
 	let flippedCards = {};
 	let alreadyFound = [];
@@ -47,27 +48,12 @@
 
 	cards = shuffleCards(cards);
 
-
-	//statistics
-	let currentlyFoundInRow = 0;
-	let mostFoundInRowLocalStorage = 0;
-	//typeof window !== "undefined" && (mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow"))) //redo with onmount
-	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, mostFoundInRowLocalStorage));
-	let pexesosSolved = 0;
-
-	if (typeof window !== "undefined") {
-		mostFoundInRow = Number(localStorage.getItem("mostFoundInRow"));
-		pexesosSolved = localStorage.getItem("mostFoundInRow")
-
-	}
-
-	$: if (mostFoundInRow >= 0 && pexesosSolved >= 0 && typeof window !== "undefined") {
-		localStorage?.setItem("mostFoundInRow", mostFoundInRow);
-		localStorage?.setItem("pexesosSolved", pexesosSolved);
-	} 
+	//statistics 
+	const userStatistics = createUserStatisticsStore();
 	
-/* 	$: localStorage.setItem("mostFoundInRow", mostFoundInRow);
-	$: localStorage.setItem("pexesosSolved", pexesosSolved); */
+	$: userStatistics.update((curValues) => 
+		({...curValues, mostInRow: Math.max($userStatistics?.inRow || 0, $userStatistics?.mostInRow || 0)})
+	)
 	
 	function handleCardFlip(cardId, groupId) {
 		if (!flippingEnabled) return;
@@ -82,10 +68,10 @@
 		} 
 		else if (flippedCardsValues.length === 1 && flippedCardsValues[0] === groupId) {
 			console.log("Cards of the same group found!");
-			currentlyFoundInRow++;
+ 			userStatistics.update((curValues) => ({...curValues, inRow: curValues.inRow+1 || 1})); 
 			
 			if (alreadyFound.length === imgs.length - 1) {
-				pexesosSolved++;
+				userStatistics.update((curValues) => ({...curValues, solvedCount: curValues.solvedCount+1 || 1}))
 				startNewGame(cards);
 				return;
 			}
@@ -101,7 +87,7 @@
 		} 
 		else {
 			console.log("Cards of different groups found!");
-			currentlyFoundInRow = 0;
+			userStatistics.update((curValues) => ({...curValues, inRow: 0}))
 
 			flippedCards = {...flippedCards, [cardId]: groupId};
 
@@ -133,11 +119,11 @@
 	{/each}
 </div>
 
-{#if typeof window !== "undefined"}
-	<div class="statistics">
-		<p>Found in a row: {currentlyFoundInRow} pair{currentlyFoundInRow !== 1 ? "s" : ""}</p>
-		<p>Most found in row: {mostFoundInRow} pair{mostFoundInRow !== 1 ? "s" : ""}</p>
-		<p>You solved {pexesosSolved} pexeso{pexesosSolved !== 1 ? "s" : ""}</p>
+{#if $userStatistics}
+	<div>
+		<p>Found in a row: {$userStatistics?.inRow || 0}</p>
+		<p>Most found in a row: {$userStatistics?.mostInRow || 0}</p>
+		<p>You solved {$userStatistics?.solvedCount || 0} pexeso{($userStatistics?.solvedCount > 1) ? "s" : ""}</p>
 	</div>
 {/if}
 
