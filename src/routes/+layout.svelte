@@ -15,7 +15,7 @@
     let imgs = [];
     $: urls = Array.from(imgs).map(img => URL.createObjectURL(img))
 
-    let inPackMenu = true;
+    let inPackMenu = false;
     let creatingNewPack = false;
 </script>
 

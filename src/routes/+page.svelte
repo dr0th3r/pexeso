@@ -50,12 +50,12 @@
 
 	//statistics
 	let currentlyFoundInRow = 0;
-	const mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow"))
-	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, mostFoundInRowLocalStorage));
+	//const mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow")) //redo with onmount
+	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, /* mostFoundInRowLocalStorage */));
 	let pexesosSolved = localStorage.getItem("mostFoundInRow");
 
-	$: localStorage.setItem("mostFoundInRow", mostFoundInRow);
-	$: localStorage.setItem("pexesosSolved", pexesosSolved);
+/* 	$: localStorage.setItem("mostFoundInRow", mostFoundInRow);
+	$: localStorage.setItem("pexesosSolved", pexesosSolved); */
 	
 	function handleCardFlip(cardId, groupId) {
 		if (!flippingEnabled) return;
