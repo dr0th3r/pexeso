@@ -20,7 +20,6 @@ export function createUserStatisticsStore(data) {
         },
         update: (callback) => {
           const updatedStore = callback(get(currentUserStatistics));
-          console.log(updatedStore);
           
           isBrowser && (localStorage.userStatistics = JSON.stringify(updatedStore));
           set(updatedStore);

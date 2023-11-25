@@ -63,4 +63,9 @@
         border-collapse: collapse;
         padding: 0.3rem;
     }
+
+    th {
+        user-select: none;
+        cursor: pointer;
+    }
 </style>

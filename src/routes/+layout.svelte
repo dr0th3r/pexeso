@@ -17,12 +17,14 @@
 
     let inPackMenu = false;
     let creatingNewPack = false;
+
+    let tooFewImgs = false;
 </script>
 
 <header>
-    <h1>Pexeso</h1>
+    <h1><a href="/">Pexeso</a></h1>
     <ul>
-        <li>Leaderboards</li>
+        <li><a href="/leaderboards">Leaderboards</a></li>
         <li on:click={() => {inPackMenu = true}}>Add Cards</li>
     </ul>
 </header>
@@ -30,39 +32,62 @@
 
 <div class="add-cards-container {inPackMenu && "show"}">
     <form class="add-cards-inner">
+        {#if tooFewImgs}
+            <div class="too-few-imgs">
+                <p>You must provide at least 3 images</p>
+                <div class="too-few-imgs-btns">
+                    <button on:click={() => {
+                        tooFewImgs=false; //continue adding more images
+                    }}>Add more images</button>
+                    <button on:click={() => {
+                        imgs = [];
+                        creatingNewPack = false;
+                        tooFewImgs=false;
+                    }}>Don't save</button>
+                </div>
+            </div>
+        {/if}
+
         <header>
             <input type="text" placeholder="Filter...">
             {#if creatingNewPack}
                 <button on:click={() => {
-                    packs = [...packs, urls];
-                    imgs = [];
-
-                    creatingNewPack = false;
+                    if (urls.length > 2) {
+                        packs = [...packs, urls];
+                        imgs = [];
+                        creatingNewPack = false;
+                    } else {
+                        tooFewImgs=true;
+                    }
                 }}>Save</button>
             {:else}
                 <button on:click={() => creatingNewPack = true}>Create new pack</button>
             {/if}
         </header>
-        {#if creatingNewPack}
-            <input type="file" name="img" id="img" accept="img/jpeg, img/png" multiple bind:files={imgs}>
-        {/if}
 
         {#if creatingNewPack}
+            <input type="file" name="img" id="img" accept="img/jpeg, img/png" multiple bind:files={imgs}>
+
             {#each urls as url}
                 <img src={url} alt="preview">
             {/each}
         {:else if packs.length > 0}
-            {#each packs as pack}
+            {#each packs as pack, i}
                 <img src={pack[0]} alt="preview">
                 <button class="play-with-pack-btn" on:click={() => {
-                    if (pack.length !== 8) { //change handling later
-                        console.log("wrong length") 
-                    } else {
+                    if (pack.length > 2) {
                         imgUrls.update(() => pack);
                         inPackMenu = false;
+                    } else {
+                        console.log("how is this even possible");
                     }
-
                 }}>Play with pack</button>
+                {#if i > 0} <!-- Can't remove initial pack -->
+                    <button on:click={() => {
+                        packs.splice(i, 1);
+                        packs = packs; //needed to trigger reactivity
+                    }}>Remove pack</button> 
+                {/if}
             {/each}
         {/if}
     </form>
@@ -96,6 +121,11 @@
         user-select: none;
     }
 
+    a {
+       color: #000;
+       text-decoration: none; 
+    }
+
     .add-cards-container {
         display: none;
         align-items: center;
@@ -123,6 +153,7 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+        position: relative;
     }
 
     img {
@@ -133,5 +164,28 @@
         -moz-user-drag: none;
         -o-user-drag: none;
         user-drag: none;
+    }
+
+    .too-few-imgs {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        width: 100%;
+        padding: 1rem;
+        justify-content: space-between;
+        height: clamp(100px, 10vh, 200px);
+        background-color: #000;
+        color: #fff;
+    }
+
+    .too-few-imgs > p {
+        text-align: center;
+    }
+
+    .too-few-imgs-btns {
+        display: flex;
+        width: 100%;
+        justify-content: space-around;
     }
 </style>

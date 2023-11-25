@@ -18,11 +18,14 @@
         "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/NestJS.svg/1200px-NestJS.svg.png"
     ]
 
+	let cards = createCards(imgs);
+
     imgUrls.subscribe((urls) => {
-        if (urls.length === 8) { //change length handling later
+		console.log(urls);
+        if (urls.length > 2) {
 			imgs = urls;
-			const cards = createCards(urls);
-            startNewGame(cards);
+			const newCards = createCards(urls);
+            startNewGame(newCards);
         }
     })
 
@@ -36,7 +39,6 @@
 		return cards
 	}
 
-	let cards = createCards(imgs);
 
 	function shuffleCards(cards) {
 		for (let i = cards.length - 1; i > 0; i--) {
@@ -87,7 +89,7 @@
 		} 
 		else {
 			console.log("Cards of different groups found!");
-			userStatistics.update((curValues) => ({...curValues, inRow: 0}))
+			$userStatistics?.inRow !== 0 && userStatistics.update((curValues) => ({...curValues, inRow: 0}))
 
 			flippedCards = {...flippedCards, [cardId]: groupId};
 
@@ -99,16 +101,15 @@
 		}
 	} 
 
-    function startNewGame(cards) {
+    function startNewGame(newCards) {
         flippedCards = {};
         alreadyFound = [];
-        cards = shuffleCards(cards)
+        cards = shuffleCards(newCards);
         flippingEnabled = true;
     }
-	
 </script>
 
-<div class="container">
+<div class="container" style="grid-template-columns: repeat({Math.ceil(Math.sqrt(cards.length))}, 200px);">
 	{#each cards as [cardImg, cardId, groupId]}
 		<Card 
 			imgUrl = {cardImg} 
@@ -130,7 +131,6 @@
 <style>
 	.container {
 		display: grid;
-		grid-template-columns: repeat(4, 200px);
 		gap: 2rem;
 	}
 </style>
