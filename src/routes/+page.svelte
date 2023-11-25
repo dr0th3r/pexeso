@@ -50,10 +50,22 @@
 
 	//statistics
 	let currentlyFoundInRow = 0;
-	//const mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow")) //redo with onmount
-	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, /* mostFoundInRowLocalStorage */));
-	let pexesosSolved = localStorage.getItem("mostFoundInRow");
+	let mostFoundInRowLocalStorage = 0;
+	//typeof window !== "undefined" && (mostFoundInRowLocalStorage = Number(localStorage.getItem("mostFoundInRow"))) //redo with onmount
+	$: mostFoundInRow = (Math.max(currentlyFoundInRow, mostFoundInRow || 0, mostFoundInRowLocalStorage));
+	let pexesosSolved = 0;
 
+	if (typeof window !== "undefined") {
+		mostFoundInRow = Number(localStorage.getItem("mostFoundInRow"));
+		pexesosSolved = localStorage.getItem("mostFoundInRow")
+
+	}
+
+	$: if (mostFoundInRow >= 0 && pexesosSolved >= 0 && typeof window !== "undefined") {
+		localStorage?.setItem("mostFoundInRow", mostFoundInRow);
+		localStorage?.setItem("pexesosSolved", pexesosSolved);
+	} 
+	
 /* 	$: localStorage.setItem("mostFoundInRow", mostFoundInRow);
 	$: localStorage.setItem("pexesosSolved", pexesosSolved); */
 	
@@ -121,11 +133,13 @@
 	{/each}
 </div>
 
-<div class="statistics">
-	<p>Found in a row: {currentlyFoundInRow} pair{currentlyFoundInRow !== 1 ? "s" : ""}</p>
-	<p>Most found in row: {mostFoundInRow} pair{mostFoundInRow !== 1 ? "s" : ""}</p>
-	<p>You solved {pexesosSolved} pexeso{pexesosSolved !== 1 ? "s" : ""}</p>
-</div>
+{#if typeof window !== "undefined"}
+	<div class="statistics">
+		<p>Found in a row: {currentlyFoundInRow} pair{currentlyFoundInRow !== 1 ? "s" : ""}</p>
+		<p>Most found in row: {mostFoundInRow} pair{mostFoundInRow !== 1 ? "s" : ""}</p>
+		<p>You solved {pexesosSolved} pexeso{pexesosSolved !== 1 ? "s" : ""}</p>
+	</div>
+{/if}
 
 <style>
 	.container {
