@@ -34,7 +34,7 @@
         inPackMenu = true;
       }}
     >
-      Add Cards
+      Manage Cards
     </li>
   </ul>
 </header>

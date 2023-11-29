@@ -1,7 +1,8 @@
 <script>
-  import Card from "$lib/components/Card.svelte";
-  import { imgUrls } from "$lib/stores.js";
-  import { createUserStatisticsStore } from "$lib/stores.js";
+	import Card from "$lib/components/Card.svelte"
+    import { imgUrls } from "$lib/stores.js"
+	import { createUserStatisticsStore } from "$lib/stores.js"
+    import { onDestroy } from "svelte";
 
   let flippedCards = {};
   let alreadyFound = [];
@@ -20,105 +21,93 @@
 
   let cards = createCards(imgs);
 
-  imgUrls.subscribe((urls) => {
-    console.log(urls);
+  const unsubscribe = imgUrls.subscribe((urls) => {
     if (urls.length > 2) {
       imgs = urls;
       const newCards = createCards(urls);
-      startNewGame(newCards);
-    }
-  });
-
-  function createCards(imgs) {
-    const cards = [];
-    for (let i = 0; i < imgs.length * 2; i += 2) {
-      const imgUrl = imgs[i / 2];
-      cards.push([imgUrl, i, i], [imgUrl, i + 1, i]); //imgUrl, imgId, groupId
-    }
-
-    return cards;
-  }
-
-  function shuffleCards(cards) {
-    for (let i = cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cards[i], cards[j]] = [cards[j], cards[i]];
-    }
-    return cards;
-  }
-
-  cards = shuffleCards(cards);
-
-  //statistics
-  const userStatistics = createUserStatisticsStore();
-
-  $: userStatistics.update((curValues) => ({
-    ...curValues,
-    mostInRow: Math.max(
-      $userStatistics?.inRow || 0,
-      $userStatistics?.mostInRow || 0
-    ),
-  }));
-
-  function handleCardFlip(cardId, groupId) {
-    if (!flippingEnabled) return;
-
-    const flippedCardsValues = Object.values(flippedCards);
-
-    if (flippedCardsValues.length === 0) {
-      flippedCards = { [cardId]: groupId };
-    } else if (
-      flippedCardsValues.length === 1 &&
-      Object.keys(flippedCards)[0] === cardId
-    ) {
-      console.log("Cannot click the same card twice!");
-    } else if (
-      flippedCardsValues.length === 1 &&
-      flippedCardsValues[0] === groupId
-    ) {
-      console.log("Cards of the same group found!");
-      userStatistics.update((curValues) => ({
-        ...curValues,
-        inRow: curValues.inRow + 1 || 1,
-      }));
-
-      if (alreadyFound.length === imgs.length - 1) {
-        userStatistics.update((curValues) => ({
-          ...curValues,
-          solvedCount: curValues.solvedCount + 1 || 1,
-        }));
-        startNewGame(cards);
-        return;
+          startNewGame(newCards);
       }
+  })
 
-      flippedCards = { ...flippedCards, [cardId]: groupId };
+	onDestroy(unsubscribe);
 
-      flippingEnabled = false;
-      setTimeout(() => {
-        flippingEnabled = true;
-        flippedCards = {};
-        alreadyFound = [...alreadyFound, groupId];
-      }, 1000);
-    } else {
-      console.log("Cards of different groups found!");
-      $userStatistics?.inRow !== 0 &&
-        userStatistics.update((curValues) => ({ ...curValues, inRow: 0 }));
+	function createCards(imgs) {
+		const cards = [];
+		for (let i = 0; i < imgs.length * 2; i+=2) {
+			const imgUrl = imgs[i / 2];
+			cards.push([imgUrl, i, i], [imgUrl, i + 1, i]); //imgUrl, imgId, groupId
+		}
 
-      flippedCards = { ...flippedCards, [cardId]: groupId };
+		return cards
+	}
 
-      flippingEnabled = false;
-      setTimeout(() => {
-        flippingEnabled = true;
-        flippedCards = {};
-      }, 1000);
-    }
-  }
+
+	function shuffleCards(cards) {
+		for (let i = cards.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[cards[i], cards[j]] = [cards[j], cards[i]]
+		}
+		return cards
+	}
+
+	cards = shuffleCards(cards);
+
+	//statistics 
+	const userStatistics = createUserStatisticsStore();
+	
+	$: userStatistics.update((curValues) => 
+		({...curValues, mostInRow: Math.max($userStatistics?.inRow || 0, $userStatistics?.mostInRow || 0)})
+	)
+	
+	function handleCardFlip(cardId, groupId) {
+		if (!flippingEnabled) return;
+
+		const flippedCardsValues = Object.values(flippedCards);
+		
+		if (flippedCardsValues.length === 0) {
+			flippedCards = {[cardId]: groupId};
+		} 
+		else if (flippedCardsValues.length === 1 && Object.keys(flippedCards)[0] === cardId) {
+			console.log("Cannot click the same card twice!");
+		} 
+		else if (flippedCardsValues.length === 1 && flippedCardsValues[0] === groupId) {
+			console.log("Cards of the same group found!");
+ 			userStatistics.update((curValues) => ({...curValues, inRow: curValues.inRow+1 || 1})); 
+			
+			if (alreadyFound.length === imgs.length - 1) {
+				userStatistics.update((curValues) => ({...curValues, solvedCount: curValues.solvedCount+1 || 1}))
+				startNewGame(cards);
+				return;
+			}
+			
+			flippedCards = {...flippedCards, [cardId]: groupId};
+
+			flippingEnabled = false;
+			setTimeout(() => {
+				flippingEnabled = true
+				flippedCards = {};
+				alreadyFound = [...alreadyFound, groupId];
+			}, 1000);	
+		} 
+		else {
+			console.log("Cards of different groups found!");
+			$userStatistics?.inRow !== 0 && userStatistics.update((curValues) => ({...curValues, inRow: 0}))
+
+			flippedCards = {...flippedCards, [cardId]: groupId};
+
+			flippingEnabled = false;
+			setTimeout(() => {
+				flippingEnabled = true;
+				flippedCards = {};
+			}, 1000);
+		}
+	} 
 
   function startNewGame(newCards) {
-    flippedCards = {};
-    alreadyFound = [];
-    cards = shuffleCards(newCards);
-    flippingEnabled = true;
+      flippedCards = {};
+      alreadyFound = [];
+      cards = shuffleCards(newCards);
+      flippingEnabled = true;
   }
 </script>
 
