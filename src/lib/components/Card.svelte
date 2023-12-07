@@ -6,14 +6,14 @@
   //console.log(imgUrl);
 </script>
 
-<div>
-  {#if !found}
-    <button on:click disabled={flipped}>
-      <img src={imgUrl} alt="test" style:display={flipped ? "block" : "none"} />
-    </button>
-  {:else}
-    <p>found</p>
-  {/if}
+<div class="outer">
+    {#if !found}
+      <button on:click disabled={flipped} >
+        <img src={imgUrl} alt="test" />
+      </button>
+    {:else}
+      <p>found</p>
+    {/if}
 </div>
 
 <style>
@@ -32,9 +32,9 @@
     align-items: center;
   }
 
-  div,
-  button:hover {
+  .outer, button {
     cursor: pointer;
+    border: 2px solid rgba(255, 255, 255, 0.65);
   }
 
   button,
@@ -48,7 +48,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 2px solid rgba(255, 255, 255, 0.65);
   }
 
   img {
@@ -60,4 +59,5 @@
     width: 90%;
     height: 90%;
   }
+
 </style>
