@@ -4,10 +4,22 @@
   import { createUserStatisticsStore } from "$lib/stores.js";
   import { onDestroy } from "svelte";
 
+  import { io } from "socket.io-client";
+
+  const socket = io();
+
+  socket.on("eventFromServer", (msg) => {
+    console.log(msg, socket.id);
+  });
+
+  socket.on("flipCardsFromServer", (cards) => {
+    flippedCards = cards;
+    isSender = false;
+  });
+
   let flippedCards = {};
   let alreadyFound = [];
   let flippingEnabled = true;
-
 
   let imgs = [
     "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
@@ -115,6 +127,11 @@
         flippedCards = {};
       }, 1000);
     }
+  }
+
+  $: if (Object.keys(flippedCards).length > 0 && flippingEnabled) {
+    console.log(flippedCards);
+    socket.emit("flipCards", flippedCards);
   }
 
   function startNewGame(newCards) {
