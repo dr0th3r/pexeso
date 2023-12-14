@@ -8,15 +8,12 @@
 
 <button
   on:click
-  disabled = {flipped || found}
+  disabled={flipped || found}
   class="card"
-  class:flipped = {flipped || found}
+  class:flipped={flipped || found}
 >
-  <div 
-    class="img-container"
-    class:found
-  >
-    <img src={imgUrl} alt="card"/>
+  <div class="img-container" class:found>
+    <img src={imgUrl} alt="card" />
   </div>
 </button>
 
@@ -28,14 +25,14 @@
     background-color: #222;
     border: none;
     border-radius: 20px;
-    rotate: y 0deg;
+    rotate: y 180deg;
     transition: rotate 0.3s ease-out;
     transform-style: preserve-3d;
     border: 2px solid rgba(255, 255, 255, 0.65);
 
-    &.flipped {
+    /*     &.flipped {
       rotate: y 180deg;
-    }
+    } */
   }
 
   .img-container {
@@ -58,5 +55,4 @@
     height: 130px;
     -webkit-user-drag: none;
   }
-
 </style>
