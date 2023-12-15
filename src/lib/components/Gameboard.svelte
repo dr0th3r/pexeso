@@ -22,7 +22,7 @@
   };
 
   let cards = [];
-  let flippedCards = {};
+  let flippedCards = [];
   let matchedPairs = [];
 
   $: {
@@ -51,17 +51,20 @@
   }
 
   function flipCard(cardId, groupId) {
-    const flippedCardIds = Object.keys(flippedCards);
-
-    if (flippedCardIds.length >= 2) {
+    if (flippedCards.length >= 2) {
       return;
     }
 
-    if (flippedCardIds.length === 0) {
-      flippedCards = { [cardId]: groupId };
-    } else if (flippedCardIds[0] === String(cardId)) {
+    if (flippedCards.length === 0) {
+      flippedCards = [
+        {
+          cardId: String(cardId),
+          groupId: String(groupId),
+        },
+      ];
+    } else if (flippedCards[0].cardId === String(cardId)) {
       alert("You can't select the same object twice!");
-    } else if (flippedCards[flippedCardIds[0]] === groupId) {
+    } else if (flippedCards[0].groupId === String(groupId)) {
       handleMatchFound(cardId, groupId);
     } else {
       handleNotMatch(cardId, groupId);
@@ -69,7 +72,13 @@
   }
 
   function handleMatchFound(cardId, groupId) {
-    flippedCards[cardId] = groupId; //needed so that both cards will be displayed untill they're both added to matched
+    flippedCards = [
+      ...flippedCards,
+      {
+        cardId: String(cardId),
+        groupId: String(groupId),
+      },
+    ]; //needed so that both cards will be displayed untill they're both added to matched
     localStats.foundInRow = localStats.foundInRow + 1;
 
     localStats.mostFoundInRow =
@@ -84,16 +93,22 @@
 
     setTimeout(() => {
       matchedPairs = [...matchedPairs, groupId]; //added after 1s so that their opacity will be lowered only after this second
-      flippedCards = {};
+      flippedCards = [];
     }, 1000);
   }
 
   function handleNotMatch(cardId, groupId) {
-    flippedCards[cardId] = groupId; //needed so that both cards will be displayed untill they're both turned upside down once again
+    flippedCards = [
+      ...flippedCards,
+      {
+        cardId: String(cardId),
+        groupId: String(groupId),
+      },
+    ]; //needed so that both cards will be displayed untill they're both turned upside down once again
     localStats.foundInRow = 0;
 
     setTimeout(() => {
-      flippedCards = {};
+      flippedCards = [];
     }, 1000);
   }
 
@@ -106,7 +121,6 @@
     matchedPairs = [];
 
     cards = cards?.sort(() => Math.random() - 0.5); //randomly shuffle cards
-    flippedCards = {};
   }
 
   startGame();
@@ -116,7 +130,7 @@
   {#each cards as { cardId, groupId, imgUrl } (cardId)}
     {@const isFound = matchedPairs.includes(groupId)}
     {@const isFlipped =
-      isFound || Object.keys(flippedCards).includes(String(cardId))}
+      isFound || flippedCards.find((card) => card.cardId === String(cardId))}
     <button
       class:flipped={isFlipped}
       on:click={() => flipCard(cardId, groupId)}
