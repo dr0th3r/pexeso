@@ -18,10 +18,36 @@
 </html>
 
 <style>
-  body {
-    font-family: "Mulish", sans-serif;
+  * {
+    padding: 0;
     margin: 0;
-    background-color: black;
-    color: white;
+  }
+
+  :root {
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
+
+    --primary: #B21212;
+    --secondary: #f97316;
+    --accent: #EA906C;
+    --bg: #111827;
+    --success: #22C55e;
+    --warining: #f59e0b;
+    --error: #9f1239;
+  }
+
+  body {
+    font-family: "Roboto", sans-serif;
+    background-color: var(--bg);
+    height: 100vh;
+    display: flex;
+    justify-content:center;
+    align-items:center;
+  }
+
+  .centerer {
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>
