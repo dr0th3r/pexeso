@@ -28,6 +28,10 @@ function gameMachine(state, event) {
       } else if (event.type === "goToMainMenu") {
         return "inMainMenu";
       }
+    case "inCardMenu":
+      if (event.type === "goToMainMenu") {
+        return "inMainMenu";
+      }
   }
 }
 
