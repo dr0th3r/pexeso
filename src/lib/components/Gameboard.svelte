@@ -1,48 +1,9 @@
 <script>
-  import Card from "$lib/components/Card.svelte";
-  import { imgUrls } from "$lib/stores.js";
-  import { createUserStatisticsStore } from "$lib/stores.js";
-  import { onDestroy } from "svelte";
+  import { fade } from "svelte/transition";
 
-  export let socket;
-  export let lobbyId;
+  import stateMachine from "$lib/stores/state.js";
 
-  socket.on("startGame", () => {
-    if (!cards) {
-      const newCards = createCards(imgs);
-      startNewGame(newCards);
-      return;
-    }
-
-    startNewGame(cards);
-  });
-
-  socket.on("flipCards", (cards) => {
-    if (!isOnTurn) {
-      const cardGroups = Object.values(flippedCards);
-      flippedCards = cards;
-
-      if (cardGroups.length > 1 && cardGroups[0] === cardGroups[1]) {
-        alreadyFound = [...alreadyFound, cardGroups[0]];
-      }
-    }
-  });
-
-  socket.on("setOnTurn", (isTrue) => {
-    if (isTrue) {
-      isOnTurn = true;
-    } else {
-      isOnTurn = false;
-    }
-  });
-
-  let flippedCards = {};
-  let alreadyFound = [];
-  let flippingEnabled = true;
-
-  let isOnTurn = false;
-
-  let imgs = [
+  export let imgs = [
     "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
     "https://cdn.worldvectorlogo.com/logos/next-js.svg",
     "https://angular.io/assets/images/logos/angularjs/AngularJS-Shield.svg",
@@ -53,210 +14,163 @@
     "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/NestJS.svg/1200px-NestJS.svg.png",
   ];
 
-  let cards = createCards(imgs);
+  export let updateStats;
 
-  const unsubscribe = imgUrls.subscribe((urls) => {
-    if (urls.length > 2) {
-      imgs = urls;
-      const newCards = createCards(urls);
-      startNewGame(newCards);
-    }
-  });
+  let localStats = {
+    foundInRow: 0,
+    mostFoundInRow: 0,
+  };
 
-  onDestroy(unsubscribe);
+  let cards = [];
+  let flippedCards = {};
+  let matchedPairs = [];
 
-  function createCards(imgs) {
+  $: {
+    console.log(cards);
+  }
+
+  function createCards(imgUrls) {
     const cards = [];
-    for (let i = 0; i < imgs.length * 2; i += 2) {
-      const imgUrl = imgs[i / 2];
-      cards.push([imgUrl, i, i], [imgUrl, i + 1, i]); //imgUrl, imgId, groupId
+    for (let i = 0, j = 0; i < imgUrls.length; i++, j += 2) {
+      cards.push(
+        //we have to create pairs of cards - that means 2 cards per 1 img
+        {
+          cardId: j,
+          groupId: i,
+          imgUrl: imgUrls[i],
+        },
+        {
+          cardId: j + 1,
+          groupId: i,
+          imgUrl: imgUrls[i],
+        }
+      );
     }
 
     return cards;
   }
 
-  function shuffleCards(cards) {
-    for (let i = cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [cards[i], cards[j]] = [cards[j], cards[i]];
+  function flipCard(cardId, groupId) {
+    const flippedCardIds = Object.keys(flippedCards);
+
+    if (flippedCardIds.length >= 2) {
+      return;
     }
-    return cards;
-  }
 
-  cards = shuffleCards(cards);
-
-  //statistics
-  const userStatistics = createUserStatisticsStore();
-
-  $: userStatistics.update((curValues) => ({
-    ...curValues,
-    mostInRow: Math.max(
-      $userStatistics?.inRow || 0,
-      $userStatistics?.mostInRow || 0
-    ),
-  }));
-
-  function handleCardFlip(cardId, groupId) {
-    if (!flippingEnabled) return;
-
-    const flippedCardsValues = Object.values(flippedCards);
-
-    if (flippedCardsValues.length === 0) {
+    if (flippedCardIds.length === 0) {
       flippedCards = { [cardId]: groupId };
-    } else if (
-      flippedCardsValues.length === 1 &&
-      Object.keys(flippedCards)[0] === cardId
-    ) {
-      console.log("Cannot click the same card twice!");
-    } else if (
-      flippedCardsValues.length === 1 &&
-      flippedCardsValues[0] === groupId
-    ) {
-      console.log("Cards of the same group found!");
-      userStatistics.update((curValues) => ({
-        ...curValues,
-        inRow: curValues.inRow + 1 || 1,
-      }));
-
-      if (alreadyFound.length === imgs.length - 1) {
-        userStatistics.update((curValues) => ({
-          ...curValues,
-          solvedCount: curValues.solvedCount + 1 || 1,
-        }));
-        showStatistics();
-        startNewGame(cards);
-        return;
-      }
-
-      flippedCards = { ...flippedCards, [cardId]: groupId };
-
-      flippingEnabled = false;
-      setTimeout(() => {
-        flippingEnabled = true;
-        flippedCards = {};
-        alreadyFound = [...alreadyFound, groupId];
-
-        setTimeout(() => {
-          //we have to flipCards first, this is a small hack to do it
-          socket.emit("addPoint", lobbyId);
-        }, 0);
-      }, 1000);
+    } else if (flippedCardIds[0] === String(cardId)) {
+      alert("You can't select the same object twice!");
+    } else if (flippedCards[flippedCardIds[0]] === groupId) {
+      handleMatchFound(cardId, groupId);
     } else {
-      console.log("Cards of different groups found!");
-      $userStatistics?.inRow !== 0 &&
-        userStatistics.update((curValues) => ({ ...curValues, inRow: 0 }));
-
-      flippedCards = { ...flippedCards, [cardId]: groupId };
-
-      flippingEnabled = false;
-      setTimeout(() => {
-        flippingEnabled = true;
-        flippedCards = {};
-
-        setTimeout(() => {
-          //we have to flipCards first, this is a small hack to do it
-          socket.emit("nextPlayer", lobbyId);
-        }, 0);
-      }, 1000);
+      handleNotMatch(cardId, groupId);
     }
   }
 
-  $: if (flippedCards && isOnTurn) {
-    socket.emit("flipCards", lobbyId, flippedCards);
+  function handleMatchFound(cardId, groupId) {
+    flippedCards[cardId] = groupId; //needed so that both cards will be displayed untill they're both added to matched
+    localStats.foundInRow = localStats.foundInRow + 1;
+
+    localStats.mostFoundInRow =
+      localStats.mostFoundInRow > localStats.foundInRow
+        ? localStats.mostFoundInRow
+        : localStats.foundInRow;
+
+    if (matchedPairs.length === cards.length / 2 - 1) {
+      updateStats(localStats);
+      stateMachine.emit({ type: "showStatistics" });
+    }
+
+    setTimeout(() => {
+      matchedPairs = [...matchedPairs, groupId]; //added after 1s so that their opacity will be lowered only after this second
+      flippedCards = {};
+    }, 1000);
   }
 
-  function showStatistics() {
-    socket.emit("showStats", lobbyId);
+  function handleNotMatch(cardId, groupId) {
+    flippedCards[cardId] = groupId; //needed so that both cards will be displayed untill they're both turned upside down once again
+    localStats.foundInRow = 0;
+
+    setTimeout(() => {
+      flippedCards = {};
+    }, 1000);
   }
 
-  function startNewGame(newCards) {
+  function startGame() {
+    if (cards.length <= 0) {
+      cards = createCards(imgs);
+    }
+
+    flippedCards = [];
+    matchedPairs = [];
+
+    cards = cards?.sort(() => Math.random() - 0.5); //randomly shuffle cards
     flippedCards = {};
-    alreadyFound = [];
-    cards = shuffleCards(newCards);
-    flippingEnabled = true;
   }
+
+  startGame();
 </script>
 
-<div class="main">
-  <div
-    class="container"
-    style="grid-template-columns: repeat({Math.ceil(
-      Math.sqrt(cards.length)
-    )}, 150px);"
-  >
-    {#each cards as [cardImg, cardId, groupId]}
-      <Card
-        imgUrl={cardImg}
-        flipped={Object.keys(flippedCards).includes(String(cardId))}
-        found={alreadyFound.includes(groupId)}
-        on:click={() => isOnTurn && handleCardFlip(cardId, groupId)}
-      />
-    {/each}
-  </div>
+<div class="board" in:fade={{ duration: 500 }}>
+  {#each cards as { cardId, groupId, imgUrl } (cardId)}
+    {@const isFound = matchedPairs.includes(groupId)}
+    {@const isFlipped =
+      isFound || Object.keys(flippedCards).includes(String(cardId))}
+    <button
+      class:flipped={isFlipped}
+      on:click={() => flipCard(cardId, groupId)}
+    >
+      <div class="img-container" class:found={isFound}>
+        <img src={imgUrl} alt="card" />
+      </div>
+    </button>
+  {/each}
 </div>
-{#if $userStatistics}
-  <div class="statsContainer">
-    <div class="stats">
-      <p>Found in a row: {$userStatistics?.inRow || 0}</p>
-      <p>Most found in a row: {$userStatistics?.mostInRow || 0}</p>
-      <p>
-        You solved {$userStatistics?.solvedCount || 0} pexeso{$userStatistics?.solvedCount >
-        1
-          ? "s"
-          : ""}
-      </p>
-    </div>
-  </div>
-{/if}
 
 <style>
-  .container {
+  .board {
     display: grid;
-    gap: 2rem;
-    justify-items: center;
-    margin-top: 30px;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0.8rem;
   }
-  .statsContainer {
+
+  button {
+    height: 170px;
+    width: 170px;
+    cursor: pointer;
+    border-radius: 12px;
+    border: 2px solid var(--primary);
+    background-color: var(--bg);
+    rotate: y 0deg;
+    transform-style: preserve-3d;
+    transition: all 0.3s ease-out;
+  }
+
+  .flipped {
+    rotate: y 180deg;
+  }
+
+  .found {
+    opacity: 0.6;
+    cursor: initial;
+  }
+
+  .img-container {
+    position: absolute;
+    inset: 0;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
-    margin-top: 20px;
+    backface-visibility: hidden;
+    rotate: y 180deg;
   }
 
-  .stats {
-    text-align: center;
-    width: fit-content;
-    padding: 0 40px;
-    border-radius: 1rem;
-    border: 2px solid white;
-  }
-
-  .container {
-    display: grid;
-    gap: 2rem;
-    justify-items: center;
-    margin-top: 30px;
-  }
-  .statsContainer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    margin-top: 20px;
-  }
-
-  .stats {
-    text-align: center;
-    width: fit-content;
-    padding: 0 40px;
-    border-radius: 1rem;
-    border: 2px solid white;
-  }
-  .main {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
+  img {
+    max-height: 140px;
+    max-width: 140px;
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-user-select: none;
   }
 </style>

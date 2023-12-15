@@ -1,36 +1,65 @@
 <script>
-  import { io } from "socket.io-client";
+  import { fade, fly } from "svelte/transition";
 
-  const socket = io();
+  import stateMachine from "$lib/stores/state.js";
+  const { state } = stateMachine;
 
-  let stats = {};
+  import MainMenu from "../lib/components/MainMenu.svelte";
+  import Gameboard from "../lib/components/Gameboard.svelte";
+  import Stats from "../lib/components/Stats.svelte";
+  import CardMenu from "../lib/components/CardMenu.svelte";
 
-  socket.on("showStats", (newStats) => {
-    stats = newStats;
-    state = "showingStats";
-  });
+  let playerStats = {
+    currentlyMostFoundInRow: 0, //in last game
+    totalyMostFoundInRow: 0, //all time
+    gamesPlayed: 0,
+  };
 
-  import Game from "$lib/components/Game.svelte";
-  import Menu from "$lib/components/Menu.svelte";
-  import Stats from "$lib/components/Stats.svelte";
+  function updateStats(newStats) {
+    const currInRow = newStats.mostFoundInRow;
+    const totalInRow = playerStats.totalyMostFoundInRow;
 
-  let state = "inMenu";
-  let lobbyId;
+    playerStats = {
+      currentlyMostFoundInRow: currInRow,
+      totalyMostFoundInRow: totalInRow > currInRow ? totalInRow : currInRow,
+      gamesPlayed: playerStats.gamesPlayed + 1,
+    };
+  }
 
-  socket.on("startGame", () => {
-    state = "inGame";
-  });
+  let transitionComplete = false;
 
-  function startGame() {
-    socket.emit("gameStart", lobbyId);
-    state = "inGame";
+  $: if ($state !== "inMainMenu") {
+    transitionComplete = false;
+    setTimeout(() => {
+      transitionComplete = true;
+    }, 500);
+  } else {
+    transitionComplete = false;
   }
 </script>
 
-{#if state === "inMenu"}
-  <Menu {startGame} updateLobbyId={(newId) => (lobbyId = newId)} {socket} />
-{:else if state === "showingStats"}
-  <Stats {stats} {startGame} />
-{:else}
-  <Game {socket} {lobbyId} />
-{/if}
+<main class="outer">
+  {#if $state === "inMainMenu"}
+    <MainMenu />
+  {:else if $state === "playingSingleplayer" && transitionComplete}
+    <Gameboard {updateStats} />
+  {:else if $state === "inStatistics"}
+    <Stats {playerStats} />
+  {:else if $state === "inCardMenu" && transitionComplete}
+    <CardMenu />
+  {/if}
+</main>
+
+<style>
+  :global(body) {
+    height: 100vh;
+  }
+
+  .outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+  }
+</style>
