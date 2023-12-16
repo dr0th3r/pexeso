@@ -1,8 +1,7 @@
 <script>
-  export let open;
 </script>
 
-<div class="outer" style:display={open ? "flex" : "none"}>
+<div class="outer">
   <div class="inner">
     <slot />
   </div>
