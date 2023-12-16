@@ -32,7 +32,7 @@
     },
   ];
 
-  let chosenPackId = 1;
+  let chosenPackId = 0;
 
   function updatePacks(cb) {
     packs = cb(packs);
@@ -69,7 +69,7 @@
   {#if $state === "inMainMenu"}
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
-    <Gameboard imgs={packs[0].imgUrls} {updateStats} />
+    <Gameboard imgs={packs[chosenPackId].imgUrls} {updateStats} />
   {:else if $state === "inStatistics"}
     <Stats {playerStats} />
   {:else if $state === "inCardMenu" && transitionComplete}

@@ -10,6 +10,8 @@
   export let choosePack;
 
   let filter = "";
+  let errorMsg = "";
+
   let inPackMenu = false;
 
   let newPackImgs = [];
@@ -34,15 +36,17 @@
   function createNewPack() {
     if (newPackTitle === "") {
       alert("You must provide pack name!");
+      errorMsg = "You must provide pack name!";
       return;
     } else if (newPackImgs.length <= 1) {
       alert("Your pack must have at least 2 different images!");
+      errorMsg = "Your pack must have at least 2 different images!";
       return;
     }
 
     if (!!modifiedPackId) {
-      updatePacks((prev) => {
-        return prev.map((pack) => {
+      updatePacks((prev) =>
+        prev.map((pack) => {
           if (pack.id === modifiedPackId) {
             return {
               id: pack.id,
@@ -52,8 +56,8 @@
           } else {
             return pack;
           }
-        });
-      });
+        })
+      );
 
       modifiedPackId = null;
     } else {
@@ -67,7 +71,16 @@
       ]);
     }
 
+    errorMsg = "";
     inPackMenu = false;
+  }
+
+  function deletePack(packId) {
+    updatePacks((prev) =>
+      prev.filter((pack) => {
+        return pack?.id !== packId;
+      })
+    );
   }
 </script>
 
@@ -90,7 +103,7 @@
     <button class="card create-card" on:click={() => (inPackMenu = true)}>
       <h2>Create New Pack</h2>
     </button>
-    {#each pexesoPacks.filter( (pack) => pack.title.includes(filter) ) as pack (pack.id)}
+    {#each pexesoPacks.filter((pack) => pack && pack?.title.includes(filter)) as pack (pack.id)}
       <div class="card" bind:clientWidth={imgWidth}>
         <div class="card-inner">
           <div class="front">
@@ -143,7 +156,7 @@
                   >
                   <span class="tooltip">Modify</span>
                 </button>
-                <button class="delete-btn">
+                <button class="delete-btn" on:click={() => deletePack(pack.id)}>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="24"
@@ -175,29 +188,34 @@
         placeholder="Pack Name"
         bind:value={newPackTitle}
       />
-      <label for="upload-img">Upload Image</label>
-      <input
-        type="file"
-        id="upload-img"
-        name="upload-img"
-        accept="image/png"
-        multiple
-        aria-multiselectable
-        on:change={handleImgUpload}
-      />
-      <button class="choose-btn" on:click={createNewPack}>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 1024 1024"
-          ><path
-            fill="#f0f0f0"
-            d="M77.248 415.04a64 64 0 0 1 90.496 0l226.304 226.304L846.528 188.8a64 64 0 1 1 90.56 90.496l-543.04 543.04l-316.8-316.8a64 64 0 0 1 0-90.496"
-          /></svg
-        >
-        <span class="tooltip">Save</span>
-      </button>
+      <div class="modal-main-right">
+        <label for="upload-img">Upload Image</label>
+        <input
+          type="file"
+          id="upload-img"
+          name="upload-img"
+          accept="image/png"
+          multiple
+          aria-multiselectable
+          on:change={handleImgUpload}
+        />
+        <button class="choose-btn" on:click={createNewPack}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 1024 1024"
+            ><path
+              fill="#f0f0f0"
+              d="M77.248 415.04a64 64 0 0 1 90.496 0l226.304 226.304L846.528 188.8a64 64 0 1 1 90.56 90.496l-543.04 543.04l-316.8-316.8a64 64 0 0 1 0-90.496"
+            /></svg
+          >
+          <span class="tooltip">Save</span>
+        </button>
+      </div>
+      {#if errorMsg !== ""}
+        <p class="error">{errorMsg}</p>
+      {/if}
     </main>
     <div class="modal-cards">
       {#each newPackImgs as imgUrl}
@@ -448,8 +466,24 @@
     width: 100%;
   }
 
+  .modal-main {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .modal-main-right {
+    display: flex;
+    flex: 1;
+    gap: 0.8rem;
+  }
+
+  .error {
+    color: var(--error);
+    text-align: center;
+  }
+
   .pack-name-input {
-    flex: 3;
+    flex: 1;
   }
 
   .modal-cards {

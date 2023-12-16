@@ -15,9 +15,7 @@
   let flippedCards = [];
   let matchedPairs = [];
 
-  $: {
-    console.log(cards);
-  }
+  $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
 
   function createCards(imgUrls) {
     const cards = [];
@@ -116,7 +114,11 @@
   startGame();
 </script>
 
-<div class="board" in:fade={{ duration: 500 }}>
+<div
+  class="board"
+  in:fade={{ duration: 500 }}
+  style:grid-template-columns={`repeat(${columnCount}, calc(70vh / ${columnCount}))`}
+>
   {#each cards as { cardId, groupId, imgUrl } (cardId)}
     {@const isFound = matchedPairs.includes(groupId)}
     {@const isFlipped =
@@ -135,13 +137,10 @@
 <style>
   .board {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 0.8rem;
   }
 
   button {
-    height: 170px;
-    width: 170px;
     cursor: pointer;
     border-radius: 12px;
     border: 2px solid var(--primary);
@@ -149,6 +148,7 @@
     rotate: y 0deg;
     transform-style: preserve-3d;
     transition: all 0.3s ease-out;
+    aspect-ratio: 1 / 1;
   }
 
   .flipped {
@@ -171,8 +171,11 @@
   }
 
   img {
-    max-height: 140px;
-    max-width: 140px;
+    object-fit: fill;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
     -webkit-user-drag: none;
     user-select: none;
     -webkit-user-select: none;
