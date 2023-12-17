@@ -1,6 +1,8 @@
 <script>
   import { fade, fly } from "svelte/transition";
 
+  import { io } from "socket.io-client";
+
   import stateMachine from "$lib/stores/state.js";
   const { state } = stateMachine;
 
@@ -8,6 +10,13 @@
   import Gameboard from "../lib/components/Gameboard.svelte";
   import Stats from "../lib/components/Stats.svelte";
   import CardMenu from "../lib/components/CardMenu.svelte";
+  import LobbyMenu from "../lib/components/LobbyMenu.svelte";
+
+  const socket = io();
+
+  socket.on("testingEvent", (msg) => {
+    console.log(msg);
+  });
 
   let playerStats = {
     currentlyMostFoundInRow: 0, //in last game
@@ -70,8 +79,10 @@
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
     <Gameboard imgs={packs[chosenPackId].imgUrls} {updateStats} />
+  {:else if $state === "inLobbyMenu" && transitionComplete}
+    <LobbyMenu {socket} imgs={packs[chosenPackId].imgUrls} {updateStats} />
   {:else if $state === "inStatistics"}
-    <Stats {playerStats} />
+    <Stats {playerStats} {socket} />
   {:else if $state === "inCardMenu" && transitionComplete}
     <CardMenu pexesoPacks={packs} {choosePack} {updatePacks} />
   {/if}

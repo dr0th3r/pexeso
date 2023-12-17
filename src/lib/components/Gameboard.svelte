@@ -6,6 +6,25 @@
   export let imgs;
   export let updateStats;
 
+  export let multiplayer = false;
+  export let socket;
+  export let lobbyId = null;
+  export let onTurn = false; //am i on turn
+
+  $: console.log(onTurn);
+
+  socket?.on("flip card", (newFlippedCards) => {
+    flippedCards = newFlippedCards;
+  });
+
+  socket?.on("card match", (newMatchedPairs) => {
+    matchedPairs = newMatchedPairs;
+  });
+
+  socket?.on("show stats", () => {
+    stateMachine.emit({ type: "showStatistics" });
+  });
+
   let localStats = {
     foundInRow: 0,
     mostFoundInRow: 0,
@@ -39,7 +58,7 @@
   }
 
   function flipCard(cardId, groupId) {
-    if (flippedCards.length >= 2) {
+    if (flippedCards.length >= 2 || (multiplayer && !onTurn)) {
       return;
     }
 
@@ -50,6 +69,7 @@
           groupId: String(groupId),
         },
       ];
+      emitFlipCards();
     } else if (flippedCards[0].cardId === String(cardId)) {
       alert("You can't select the same object twice!");
     } else if (flippedCards[0].groupId === String(groupId)) {
@@ -67,6 +87,8 @@
         groupId: String(groupId),
       },
     ]; //needed so that both cards will be displayed untill they're both added to matched
+    emitFlipCards();
+
     localStats.foundInRow = localStats.foundInRow + 1;
 
     localStats.mostFoundInRow =
@@ -75,13 +97,19 @@
         : localStats.foundInRow;
 
     if (matchedPairs.length === cards.length / 2 - 1) {
-      updateStats(localStats);
+      if (multiplayer) {
+        socket.emit("show stats", lobbyId);
+      } else {
+        updateStats(localStats);
+      }
       stateMachine.emit({ type: "showStatistics" });
     }
 
     setTimeout(() => {
       matchedPairs = [...matchedPairs, groupId]; //added after 1s so that their opacity will be lowered only after this second
       flippedCards = [];
+      emitFlipCards();
+      emitCardMatch();
     }, 1000);
   }
 
@@ -93,11 +121,32 @@
         groupId: String(groupId),
       },
     ]; //needed so that both cards will be displayed untill they're both turned upside down once again
+    emitFlipCards();
+
     localStats.foundInRow = 0;
 
     setTimeout(() => {
       flippedCards = [];
+      emitFlipCards();
+      emitNextPlayer();
     }, 1000);
+  }
+
+  function emitFlipCards() {
+    if (multiplayer && socket && lobbyId && onTurn && flippedCards.length < 3)
+      socket.emit("flip card", lobbyId, flippedCards);
+  }
+
+  function emitCardMatch() {
+    if (multiplayer && socket && lobbyId && onTurn && matchedPairs) {
+      socket.emit("card match", lobbyId, matchedPairs);
+    }
+  }
+
+  function emitNextPlayer() {
+    if (multiplayer && socket && onTurn && lobbyId) {
+      socket.emit("next player", lobbyId);
+    }
   }
 
   function startGame() {

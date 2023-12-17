@@ -17,8 +17,14 @@ function gameMachine(state, event) {
         return "playingSingleplayer";
       } else if (event.type === "goToCardMenu") {
         return "inCardMenu";
+      } else if (event.type === "goToLobbyMenu") {
+        return "inLobbyMenu";
       }
     case "playingSingleplayer":
+      if (event.type === "showStatistics") {
+        return "inStatistics";
+      }
+    case "inLobbyMenu":
       if (event.type === "showStatistics") {
         return "inStatistics";
       }

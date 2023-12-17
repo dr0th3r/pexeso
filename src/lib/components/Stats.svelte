@@ -2,24 +2,48 @@
   import stateMachine from "$lib/stores/state.js";
 
   export let playerStats;
+
+  export let socket;
+
+  socket.on("return stats", (players) => {
+    //if we get this respone we know it is multiplayer and display correct page
+    multiplayer = true;
+    stats = players;
+
+    console.log(stats);
+  });
+
+  let multiplayer = false;
+  let stats = playerStats;
 </script>
 
-<h1>Your Statistics</h1>
-<ul>
-  <li>
-    Most pairs found in a row this game: {playerStats.currentlyMostFoundInRow}
-  </li>
-  <li>
-    Most pairs found in a row completely: {playerStats.totalyMostFoundInRow}
-  </li>
-  <li>Games Played: {playerStats.gamesPlayed}</li>
-  <button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
-    >Start New Game</button
-  >
-  <button on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
-    >Back To Menu</button
-  >
-</ul>
+{#if !multiplayer}
+  <h1>Your Statistics</h1>
+  <ul>
+    <li>
+      Most pairs found in a row this game: {playerStats.currentlyMostFoundInRow}
+    </li>
+    <li>
+      Most pairs found in a row completely: {playerStats.totalyMostFoundInRow}
+    </li>
+    <li>Games Played: {playerStats.gamesPlayed}</li>
+    <button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
+      >Start New Game</button
+    >
+    <button on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
+      >Back To Menu</button
+    >
+  </ul>
+{:else}
+  {#each stats as player}
+    <h1>{player.name}' stats</h1>
+    <ul>
+      <li>
+        Found Pairs: {player?.stats?.pairsFound}
+      </li>
+    </ul>
+  {/each}
+{/if}
 
 <style>
   h1 {

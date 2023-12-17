@@ -11,6 +11,7 @@
   >Singleplayer</button
 >
 <button
+  on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
   in:fly={{ y: 200, duration: 2000, delay: 100 }}
   out:fade={{ duration: 500 }}>Multiplayer</button
 >
