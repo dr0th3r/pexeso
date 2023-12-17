@@ -24,9 +24,13 @@ function gameMachine(state, event) {
       if (event.type === "showStatistics") {
         return "inStatistics";
       }
-    case "inLobbyMenu":
+    case "playingMultiplayer":
       if (event.type === "showStatistics") {
         return "inStatistics";
+      }
+    case "inLobbyMenu":
+      if (event.type === "startMultiplayer") {
+        return "playingMultiplayer";
       }
     case "inStatistics":
       if (event.type === "startSingleplayer") {
@@ -38,6 +42,9 @@ function gameMachine(state, event) {
       if (event.type === "goToMainMenu") {
         return "inMainMenu";
       }
+    default:
+      console.log(event.type);
+      return state;
   }
 }
 

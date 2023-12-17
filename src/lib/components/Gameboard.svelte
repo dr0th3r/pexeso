@@ -21,10 +21,6 @@
     matchedPairs = newMatchedPairs;
   });
 
-  socket?.on("show stats", () => {
-    stateMachine.emit({ type: "showStatistics" });
-  });
-
   let localStats = {
     foundInRow: 0,
     mostFoundInRow: 0,
@@ -101,8 +97,8 @@
         socket.emit("show stats", lobbyId);
       } else {
         updateStats(localStats);
+        stateMachine.emit({ type: "showStatistics" });
       }
-      stateMachine.emit({ type: "showStatistics" });
     }
 
     setTimeout(() => {
@@ -133,6 +129,8 @@
   }
 
   function emitFlipCards() {
+    console.log(multiplayer, socket, lobbyId, onTurn);
+
     if (multiplayer && socket && lobbyId && onTurn && flippedCards.length < 3)
       socket.emit("flip card", lobbyId, flippedCards);
   }

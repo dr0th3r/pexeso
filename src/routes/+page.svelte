@@ -14,9 +14,33 @@
 
   const socket = io();
 
-  socket.on("testingEvent", (msg) => {
-    console.log(msg);
+  socket.on("error", (err) => {
+    console.error(err);
+    alert("Error");
   });
+
+  socket.on("start game", (data) => {
+    lobbyInfo = data;
+    stateMachine.emit({ type: "startMultiplayer" });
+
+    console.log(lobbyInfo);
+  });
+
+  socket.on("next player", (nextPlayer) => {
+    lobbyInfo.playerOnTurn = nextPlayer;
+
+    lobbyInfo = lobbyInfo;
+  });
+
+  socket.on("show stats", (players) => {
+    lobbyInfo.players = players;
+    lobbyInfo = lobbyInfo;
+    stateMachine.emit({ type: "showStatistics" });
+
+    console.log(lobbyInfo);
+  });
+
+  let lobbyInfo = null;
 
   let playerStats = {
     currentlyMostFoundInRow: 0, //in last game
@@ -79,10 +103,21 @@
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
     <Gameboard imgs={packs[chosenPackId].imgUrls} {updateStats} />
+  {:else if $state === "playingMultiplayer" && transitionComplete}
+    <Gameboard
+      imgs={lobbyInfo?.pack}
+      {updateStats}
+      multiplayer={true}
+      {socket}
+      lobbyId={lobbyInfo?.id}
+      onTurn={lobbyInfo?.players[lobbyInfo?.playerOnTurn]?.id === socket.id}
+    />
   {:else if $state === "inLobbyMenu" && transitionComplete}
     <LobbyMenu {socket} imgs={packs[chosenPackId].imgUrls} {updateStats} />
+  {:else if $state === "inStatistics" && lobbyInfo}
+    <Stats stats={lobbyInfo?.players} multiplayer={true} />
   {:else if $state === "inStatistics"}
-    <Stats {playerStats} {socket} />
+    <Stats stats={playerStats} multiplayer={false} />
   {:else if $state === "inCardMenu" && transitionComplete}
     <CardMenu pexesoPacks={packs} {choosePack} {updatePacks} />
   {/if}

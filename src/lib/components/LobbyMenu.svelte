@@ -1,15 +1,7 @@
 <script>
-  import Gameboard from "./Gameboard.svelte";
-
   export let imgs;
-  export let updateStats;
 
   export let socket;
-
-  socket.on("error", (err) => {
-    console.error(err);
-    alert("Error");
-  });
 
   socket.on("create lobby", (data) => {
     lobbyInfo = data;
@@ -28,16 +20,6 @@
 
     player.ready = !player.ready;
     lobbyInfo = lobbyInfo; //for svelte to refresh
-  });
-
-  socket.on("start game", () => {
-    localState = "inGame";
-  });
-
-  socket.on("next player", (nextPlayer) => {
-    lobbyInfo.playerOnTurn = nextPlayer;
-
-    lobbyInfo = lobbyInfo;
   });
 
   let localState = "main";
@@ -68,8 +50,6 @@
 
     socket.emit("join lobby", username, joinLobbyId);
   }
-
-  $: console.log(lobbyInfo);
 </script>
 
 {#if localState === "main"}
@@ -112,15 +92,6 @@
       >Ready</button
     >
   </div>
-{:else if localState === "inGame"}
-  <Gameboard
-    imgs={lobbyInfo?.pack}
-    {updateStats}
-    multiplayer={true}
-    {socket}
-    lobbyId={lobbyInfo?.id}
-    onTurn={lobbyInfo?.players[lobbyInfo?.playerOnTurn]?.id === socket.id}
-  />
 {/if}
 
 <style>
