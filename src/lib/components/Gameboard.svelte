@@ -8,10 +8,13 @@
 
   export let multiplayer = false;
   export let socket;
-  export let lobbyId = null;
-  export let onTurn = false; //am i on turn
+  export let lobbyInfo;
 
-  $: console.log(onTurn);
+  const lobbyId = lobbyInfo?.id || null;
+  const players = lobbyInfo?.players;
+  $: onTurn = checkIfOnTurn(players, lobbyInfo?.playerOnTurn, socket.id); //am i on turn
+
+  console.log(onTurn);
 
   socket?.on("flip card", (newFlippedCards) => {
     flippedCards = newFlippedCards;
@@ -31,6 +34,10 @@
   let matchedPairs = [];
 
   $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
+
+  function checkIfOnTurn(players, playerOnTurn, checkPlayerId) {
+    return players[playerOnTurn]?.id === checkPlayerId;
+  }
 
   function createCards(imgUrls) {
     const cards = [];
@@ -161,6 +168,17 @@
   startGame();
 </script>
 
+{#if multiplayer}
+  <div class="player-list">
+    {#each players as { name, id } (id)}
+      <span
+        style:border={checkIfOnTurn(players, lobbyInfo?.playerOnTurn, id)
+          ? "1px solid var(--primary)"
+          : "none"}>{name}</span
+      >
+    {/each}
+  </div>
+{/if}
 <div
   class="board"
   in:fade={{ duration: 500 }}
@@ -182,6 +200,25 @@
 </div>
 
 <style>
+  .player-list {
+    position: absolute;
+    top: -2.4rem;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+    color: #f0f0f0;
+    width: 100%;
+  }
+
+  .player-list span {
+    box-sizing: border-box;
+    font-size: 1.2rem;
+    display: block;
+    padding: 0.2rem 0.4rem;
+    border-radius: 8px;
+  }
+
   .board {
     display: grid;
     gap: 0.8rem;

@@ -109,8 +109,7 @@
       {updateStats}
       multiplayer={true}
       {socket}
-      lobbyId={lobbyInfo?.id}
-      onTurn={lobbyInfo?.players[lobbyInfo?.playerOnTurn]?.id === socket.id}
+      {lobbyInfo}
     />
   {:else if $state === "inLobbyMenu" && transitionComplete}
     <LobbyMenu {socket} imgs={packs[chosenPackId].imgUrls} {updateStats} />
@@ -134,5 +133,6 @@
     align-items: center;
     justify-content: center;
     gap: 0.8rem;
+    position: relative;
   }
 </style>

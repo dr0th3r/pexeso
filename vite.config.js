@@ -32,6 +32,8 @@ const webSocketServer = {
               ready: false,
               stats: {
                 pairsFound: 0,
+                mostInRow: 0,
+                currMostInRow: 0,
               },
             },
           ],
@@ -54,6 +56,8 @@ const webSocketServer = {
             ready: false,
             stats: {
               pairsFound: 0,
+              mostInRow: 0,
+              currMostInRow: 0,
             },
           });
 
@@ -95,6 +99,10 @@ const webSocketServer = {
         )?.stats;
 
         playerStats.pairsFound = playerStats.pairsFound + 1 || 1;
+        playerStats.currMostInRow = playerStats.currMostInRow + 1 || 1;
+
+        playerStats.mostInRow =
+          playerStats.currMostInRow || playerStats.mostInRow || 1;
 
         socket.to(lobbyId).emit("card match", matchedPairs);
       });
@@ -103,6 +111,11 @@ const webSocketServer = {
         //possible optimalization - send it only to previously on turn and now on turn player
         //there are also many more possible optimalizations
         const lobby = lobbies[lobbyId];
+
+        const playerStats = lobby?.players.find(
+          (player) => player.id === socket.id
+        )?.stats;
+        playerStats.currMostInRow = 0;
 
         let nextPlayer = lobby.playerOnTurn + 1;
         if (nextPlayer >= lobby?.players?.length) {
