@@ -85,6 +85,8 @@ const webSocketServer = {
           : true;
 
         if (allPlayersReady) {
+          players.forEach((player) => (player.ready = false));
+          lobby.playerOnTurn = 0;
           io.in(lobbyId).emit("start game", lobby);
         }
       });
@@ -128,7 +130,38 @@ const webSocketServer = {
       });
 
       socket.on("show stats", (lobbyId) => {
+        //we need to update stats first
+        const playerStats = lobbies[lobbyId]?.players.find(
+          (player) => player.id === socket.id
+        )?.stats;
+
+        playerStats.pairsFound = playerStats.pairsFound + 1 || 1;
+        playerStats.currMostInRow = playerStats.currMostInRow + 1 || 1;
+
+        playerStats.mostInRow =
+          playerStats.currMostInRow || playerStats.mostInRow || 1;
+
+        //and then display them
         io.in(lobbyId).emit("show stats", lobbies[lobbyId]?.players);
+      });
+
+      socket.on("leave lobby", (lobbyId) => {
+        const players = lobbies[lobbyId]?.players;
+
+        console.log(lobbies[lobbyId]);
+
+        const playerIndex = players?.findIndex(
+          (player) => player.id === socket.id
+        );
+
+        players?.splice(playerIndex, 1);
+
+        if (players?.length <= 1) {
+          socket.to(lobbyId).emit("leave lobby");
+          io.socketsLeave(lobbyId);
+        } else {
+          socket.leave(lobbyId);
+        }
       });
 
       socket.on("disconnect", () => {

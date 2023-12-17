@@ -37,6 +37,8 @@ function gameMachine(state, event) {
         return "playingSingleplayer";
       } else if (event.type === "goToMainMenu") {
         return "inMainMenu";
+      } else if (event.type === "startMultiplayer") {
+        return "playingMultiplayer";
       }
     case "inCardMenu":
       if (event.type === "goToMainMenu") {

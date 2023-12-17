@@ -40,6 +40,11 @@
     console.log(lobbyInfo);
   });
 
+  socket.on("leave lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });
+
   let lobbyInfo = null;
 
   let playerStats = {
@@ -114,9 +119,14 @@
   {:else if $state === "inLobbyMenu" && transitionComplete}
     <LobbyMenu {socket} imgs={packs[chosenPackId].imgUrls} {updateStats} />
   {:else if $state === "inStatistics" && lobbyInfo}
-    <Stats stats={lobbyInfo?.players} multiplayer={true} />
+    <Stats
+      stats={lobbyInfo?.players}
+      multiplayer={true}
+      {socket}
+      lobbyId={lobbyInfo?.id}
+    />
   {:else if $state === "inStatistics"}
-    <Stats stats={playerStats} multiplayer={false} />
+    <Stats stats={playerStats} />
   {:else if $state === "inCardMenu" && transitionComplete}
     <CardMenu pexesoPacks={packs} {choosePack} {updatePacks} />
   {/if}
