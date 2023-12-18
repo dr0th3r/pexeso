@@ -92,8 +92,13 @@
         </li>
       {/each}
     </ul>
-    <button on:click={() => socket.emit("toggle ready", lobbyInfo?.id)}
-      >Ready</button
+    <button on:click={() => {
+      socket.emit("toggle ready", lobbyInfo?.id)
+      localState="main"
+    }}>Ready</button
+    >
+    <button on:click={() => socket.emit("leave lobby", lobbyInfo?.id)}
+      >Leave</button
     >
   </div>
 {/if}

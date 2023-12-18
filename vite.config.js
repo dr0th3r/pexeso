@@ -145,7 +145,7 @@ const webSocketServer = {
         io.in(lobbyId).emit("show stats", lobbies[lobbyId]?.players);
       });
 
-      socket.on("leave lobby", (lobbyId) => {
+      socket.on("leave lobby", (lobbyId, autoLobbyDelete=false) => {
         const players = lobbies[lobbyId]?.players;
 
         console.log(lobbies[lobbyId]);
@@ -156,7 +156,7 @@ const webSocketServer = {
 
         players?.splice(playerIndex, 1);
 
-        if (players?.length <= 1) {
+        if (players?.length <= 1 && autoLobbyDelete) {
           socket.to(lobbyId).emit("leave lobby");
           io.socketsLeave(lobbyId);
         } else {

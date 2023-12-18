@@ -52,7 +52,7 @@
     <button on:click={() => socket.emit("toggle ready", lobbyId)}>Ready</button>
     <button
       on:click={() => {
-        socket.emit("leave lobby", lobbyId);
+        socket.emit("leave lobby", lobbyId, true);
         stateMachine.emit({ type: "goToMainMenu" });
       }}>Back To Menu</button
     >
