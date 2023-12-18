@@ -37,7 +37,8 @@
 
   function checkIfOnTurn(players, playerOnTurn, checkPlayerId) {
     if (!multiplayer) 
-      return false;   
+      return true;   
+    return players[playerOnTurn]?.id === checkPlayerId || false;
   }
 
   function createCards(imgUrls) {
