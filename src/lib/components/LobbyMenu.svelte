@@ -15,6 +15,11 @@
     localState = "inLobby";
   });
 
+  socket.on("player left lobby", (connectedPlayers) => {
+    lobbyInfo.players = connectedPlayers;
+    lobbyInfo = lobbyInfo;
+  });
+
   socket.on("toggle ready", (playerId) => {
     const player = lobbyInfo?.players.find((player) => player.id == playerId);
 
@@ -57,7 +62,11 @@
 {#if localState === "main"}
   <header>
     <h2>Lobby Menu</h2>
-    <button class="home-btn" on:click={() => stateMachine.emit({type: "goToMainMenu"})}>Go To Main Menu</button>
+    <button
+      class="home-btn"
+      on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
+      >Go To Main Menu</button
+    >
   </header>
   <div class="cards">
     <button class="card" on:click={() => (localState = "createMenu")}
@@ -70,12 +79,16 @@
 {:else if localState == "createMenu"}
   <input placeholder="Username..." bind:value={username} />
   <button on:click={createLobby} class="create-join-btn">Create</button>
-  <button class="create-join-btn" on:click={() => (localState = "main")}>Go Back</button>
+  <button class="create-join-btn" on:click={() => (localState = "main")}
+    >Go Back</button
+  >
 {:else if localState == "joinMenu"}
   <input placeholder="Username..." bind:value={username} />
   <input placeholder="Lobby Id..." bind:value={joinLobbyId} />
   <button on:click={joinLobby} class="create-join-btn">Join</button>
-  <button class="create-join-btn" on:click={() => (localState = "main")}>Go Back</button>
+  <button class="create-join-btn" on:click={() => (localState = "main")}
+    >Go Back</button
+  >
 {:else if localState == "inLobby" && lobbyInfo}
   <div class="lobby">
     <h2>Lobby: {lobbyInfo?.id}</h2>
@@ -92,13 +105,16 @@
         </li>
       {/each}
     </ul>
-    <button on:click={() => {
-      socket.emit("toggle ready", lobbyInfo?.id)
-      localState="main"
-    }}>Ready</button
+    <button
+      on:click={() => {
+        socket.emit("toggle ready", lobbyInfo?.id);
+      }}>Ready</button
     >
-    <button on:click={() => socket.emit("leave lobby", lobbyInfo?.id)}
-      >Leave</button
+    <button
+      on:click={() => {
+        socket.emit("leave lobby", lobbyInfo?.id, false);
+        localState = "main";
+      }}>Leave</button
     >
   </div>
 {/if}

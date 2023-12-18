@@ -145,19 +145,15 @@ const webSocketServer = {
         io.in(lobbyId).emit("show stats", lobbies[lobbyId]?.players);
       });
 
-      socket.on("leave lobby", (lobbyId, autoLobbyDelete=false) => {
-        const players = lobbies[lobbyId]?.players;
-
-        console.log(lobbies[lobbyId]);
-
-        const playerIndex = players?.findIndex(
+      socket.on("leave lobby", (lobbyId, autoLobbyDelete = false) => {
+        const players = lobbies[lobbyId]?.players?.filter(
           (player) => player.id === socket.id
         );
 
-        players?.splice(playerIndex, 1);
+        socket.to(lobbyId).emit("player left lobby", players);
 
-        if (players?.length <= 1 && autoLobbyDelete) {
-          socket.to(lobbyId).emit("leave lobby");
+        if (players?.length <= 0 || (players?.length <= 1 && autoLobbyDelete)) {
+          socket.to(lobbyId).emit("delete lobby");
           io.socketsLeave(lobbyId);
         } else {
           socket.leave(lobbyId);

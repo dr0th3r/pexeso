@@ -1,7 +1,7 @@
 <script>
   import stateMachine from "$lib/stores/state.js";
 
-  export let stats;
+  export let stats; //array of players
   export let multiplayer = false;
   export let socket;
   export let lobbyId;
@@ -11,6 +11,10 @@
     player.ready = !player.ready;
 
     stats = stats; //for svelte to refresh
+  });
+
+  socket?.on("player left lobby", (connectedPlayers) => {
+    stats = connectedPlayers;
   });
 </script>
 

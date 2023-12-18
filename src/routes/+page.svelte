@@ -40,7 +40,7 @@
     console.log(lobbyInfo);
   });
 
-  socket.on("leave lobby", () => {
+  socket.on("delete lobby", () => {
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
   });
@@ -89,6 +89,10 @@
       totalyMostFoundInRow: totalInRow > currInRow ? totalInRow : currInRow,
       gamesPlayed: playerStats.gamesPlayed + 1,
     };
+  }
+
+  function updateLobbyInfo(cb) {
+    lobbyInfo = cb(lobbyInfo);
   }
 
   let transitionComplete = false;
