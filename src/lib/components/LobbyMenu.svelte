@@ -1,4 +1,6 @@
 <script>
+  import stateMachine from "../stores/state";
+
   export let imgs;
 
   export let socket;
@@ -55,7 +57,7 @@
 {#if localState === "main"}
   <header>
     <h2>Lobby Menu</h2>
-    <button class="home-btn">Go To Main Menu</button>
+    <button class="home-btn" on:click={() => stateMachine.emit({type: "goToMainMenu"})}>Go To Main Menu</button>
   </header>
   <div class="cards">
     <button class="card" on:click={() => (localState = "createMenu")}
@@ -68,10 +70,12 @@
 {:else if localState == "createMenu"}
   <input placeholder="Username..." bind:value={username} />
   <button on:click={createLobby} class="create-join-btn">Create</button>
+  <button class="create-join-btn" on:click={() => (localState = "main")}>Go Back</button>
 {:else if localState == "joinMenu"}
   <input placeholder="Username..." bind:value={username} />
   <input placeholder="Lobby Id..." bind:value={joinLobbyId} />
   <button on:click={joinLobby} class="create-join-btn">Join</button>
+  <button class="create-join-btn" on:click={() => (localState = "main")}>Go Back</button>
 {:else if localState == "inLobby" && lobbyInfo}
   <div class="lobby">
     <h2>Lobby: {lobbyInfo?.id}</h2>
@@ -132,12 +136,13 @@
   }
 
   .home-btn,
+  .create-join-btn,
   .card {
     transition: all 0.3s ease-out;
   }
 
   .home-btn:hover,
-  .create-join-btn,
+  .create-join-btn:hover,
   .card:hover {
     background-color: var(--primary);
   }

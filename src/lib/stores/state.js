@@ -31,6 +31,8 @@ function gameMachine(state, event) {
     case "inLobbyMenu":
       if (event.type === "startMultiplayer") {
         return "playingMultiplayer";
+      } else if (event.type === "goToMainMenu") {
+        return "inMainMenu";
       }
     case "inStatistics":
       if (event.type === "startSingleplayer") {
