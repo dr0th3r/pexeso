@@ -137,6 +137,7 @@
   }
 
   .home-btn:hover,
+  .create-join-btn,
   .card:hover {
     background-color: var(--primary);
   }

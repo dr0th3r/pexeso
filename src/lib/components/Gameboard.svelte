@@ -12,7 +12,7 @@
 
   const lobbyId = lobbyInfo?.id || null;
   const players = lobbyInfo?.players;
-  $: onTurn = checkIfOnTurn(players, lobbyInfo?.playerOnTurn, socket.id); //am i on turn
+  $: onTurn = checkIfOnTurn(players, lobbyInfo?.playerOnTurn, socket?.id); //am i on turn
 
   console.log(onTurn);
 
@@ -36,7 +36,8 @@
   $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
 
   function checkIfOnTurn(players, playerOnTurn, checkPlayerId) {
-    return players[playerOnTurn]?.id === checkPlayerId;
+    if (!multiplayer) 
+      return false;   
   }
 
   function createCards(imgUrls) {
