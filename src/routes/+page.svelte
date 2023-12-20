@@ -15,8 +15,7 @@
   const socket = io();
 
   socket.on("error", (err) => {
-    console.error(err);
-    alert("Error");
+    alert(`Error: ${err}`);
   });
 
   socket.on("start game", (data) => {

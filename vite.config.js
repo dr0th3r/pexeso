@@ -28,6 +28,7 @@ const webSocketServer = {
           id: lobbyId,
           pack: pack,
           playerOnTurn: 0,
+          joinable: true,
           players: [
             {
               id: socketId,
@@ -52,6 +53,9 @@ const webSocketServer = {
       socket.on("join lobby", (username, lobbyId) => {
         if (!lobbies[lobbyId]) {
           socket.emit("error", "No such lobby");
+        } else if (!lobbies[lobbyId]?.joinable) {
+          console.log("user attempted to join running lobby");
+          socket.emit("error", "You attempted to join running lobby");
         } else {
           lobbyIdStore = lobbyId;
 
@@ -92,6 +96,7 @@ const webSocketServer = {
         if (allPlayersReady) {
           players.forEach((player) => (player.ready = false));
           lobby.playerOnTurn = 0;
+          lobby.joinable = false;
           io.in(lobbyId).emit("start game", lobby);
         }
       });
