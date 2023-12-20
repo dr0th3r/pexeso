@@ -247,6 +247,10 @@
     rotate: y 180deg;
   }
 
+  .flipped img {
+    opacity: 1;
+  }
+
   .found {
     opacity: 0.6;
     cursor: initial;
@@ -263,6 +267,7 @@
   }
 
   img {
+    opacity: 0; /*better performance than display: none*/
     object-fit: fill;
     overflow: hidden;
     height: 100%;
