@@ -13,12 +13,15 @@ const webSocketServer = {
     const io = new Server(server.httpServer);
 
     io.on("connection", (socket) => {
+      let lobbyIdStore = null;
+
       socket.emit("testingEvent", "Hello World!");
 
       socket.on("create lobby", (username, pack) => {
         let socketId = socket.id;
 
         const lobbyId = `${socketId}_lobby`;
+        lobbyIdStore = lobbyId;
 
         const lobbyInfo = {
           //lobby template
@@ -50,6 +53,8 @@ const webSocketServer = {
         if (!lobbies[lobbyId]) {
           socket.emit("error", "No such lobby");
         } else {
+          lobbyIdStore = lobbyId;
+
           lobbies[lobbyId]["players"].push({
             id: socket.id,
             name: username,
@@ -161,7 +166,31 @@ const webSocketServer = {
       });
 
       socket.on("disconnect", () => {
-        console.log("user disconnected");
+        if (lobbyIdStore !== null) {
+          const lobby = lobbies[lobbyIdStore];
+
+          if (lobby.players[lobby.playerOnTurn]?.id === socket?.id) {
+            //if the disconnected player was on turn, we don't want any cards to remain flipped
+            socket.to(lobbyIdStore).emit("flip card", []);
+          }
+
+          lobby.players = lobby.players.filter(
+            (player) => player?.id !== socket?.id
+          );
+
+          if (lobby.players.length <= 1) {
+            //you shouldn't be able to play in 1 player
+            socket.to(lobbyIdStore).emit("delete lobby");
+            io.socketsLeave(lobbyIdStore);
+          } else {
+            if (lobby.playerOnTurn > lobby.players.length - 1) {
+              lobby.playerOnTurn = 0;
+              socket.to(lobbyIdStore).emit("next player", 0);
+            }
+
+            socket.to(lobbyIdStore).emit("player left game", lobby.players);
+          }
+        }
       });
     });
   },

@@ -11,7 +11,7 @@
   export let lobbyInfo;
 
   const lobbyId = lobbyInfo?.id || null;
-  const players = lobbyInfo?.players;
+  $: players = lobbyInfo?.players || [];
   $: onTurn = checkIfOnTurn(players, lobbyInfo?.playerOnTurn, socket?.id); //am i on turn
 
   console.log(onTurn);
@@ -22,6 +22,13 @@
 
   socket?.on("card match", (newMatchedPairs) => {
     matchedPairs = newMatchedPairs;
+  });
+
+  socket.on("player left game", (remainingPlayers) => {
+    console.log(lobbyInfo);
+    lobbyInfo.players = remainingPlayers;
+    lobbyInfo = lobbyInfo;
+    console.log(lobbyInfo);
   });
 
   let localStats = {
@@ -36,8 +43,7 @@
   $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
 
   function checkIfOnTurn(players, playerOnTurn, checkPlayerId) {
-    if (!multiplayer) 
-      return true;   
+    if (!multiplayer) return true;
     return players[playerOnTurn]?.id === checkPlayerId || false;
   }
 
