@@ -24,7 +24,7 @@
     matchedPairs = newMatchedPairs;
   });
 
-  socket.on("player left game", (remainingPlayers) => {
+  socket?.on("player left game", (remainingPlayers) => {
     console.log(lobbyInfo);
     lobbyInfo.players = remainingPlayers;
     lobbyInfo = lobbyInfo;
@@ -201,7 +201,7 @@
       on:click={() => flipCard(cardId, groupId)}
     >
       <div class="img-container" class:found={isFound}>
-        <img src={imgUrl} alt="card" />
+        <img src={isFlipped ? imgUrl : "./never_gonna.jpg"} alt="card" />
       </div>
     </button>
   {/each}
