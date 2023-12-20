@@ -57,6 +57,11 @@
 
     socket.emit("join lobby", username, joinLobbyId);
   }
+
+  function leaveLobby() {
+    socket.emit("leave lobby", lobbyInfo?.id, false);
+    localState = "main";
+  }
 </script>
 
 {#if localState === "main"}
@@ -110,12 +115,7 @@
         socket.emit("toggle ready", lobbyInfo?.id);
       }}>Ready</button
     >
-    <button
-      on:click={() => {
-        socket.emit("leave lobby", lobbyInfo?.id, false);
-        localState = "main";
-      }}>Leave</button
-    >
+    <button on:click={leaveLobby}>Leave</button>
   </div>
 {/if}
 

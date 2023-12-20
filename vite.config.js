@@ -151,9 +151,13 @@ const webSocketServer = {
       });
 
       socket.on("leave lobby", (lobbyId, autoLobbyDelete = false) => {
-        const players = lobbies[lobbyId]?.players?.filter(
-          (player) => player.id === socket.id
+        const lobby = lobbies[lobbyId];
+
+        const players = lobby?.players?.filter(
+          (player) => player.id !== socket.id
         );
+
+        lobby.players = players;
 
         socket.to(lobbyId).emit("player left lobby", players);
 
