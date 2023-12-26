@@ -1,4 +1,6 @@
 <script>
+  import { authStore, authHandlers } from "../stores/auth";
+  
   import stateMachine from "../stores/state";
 </script>
 
@@ -9,8 +11,14 @@
     </a>
   </h1>
   <button class="profile-img-placeholder"
-    on:click={() => stateMachine.emit({ type: "goToSignInMenu" })}
-  ></button>
+    on:click={() => {
+      if ($authStore.user) {
+        authHandlers.logOut();
+      } else {
+        stateMachine.emit({ type: "goToSignInMenu", user: $authStore.user })
+      }
+    }}
+  >{$authStore.user ? "Log Out" : "Sign In"}</button>
 </nav>
 
 <style>
@@ -28,7 +36,23 @@
     font-size: 2rem;
   }
 
-  .profile-img-placeholder {
+  button {
+    margin-left: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    background-color: transparent;
+    color: #f0f0f0; 
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+  }
+
+  button:hover {
+    background-color: var(--primary);
+  }
+
+/*   .profile-img-placeholder {
     border: none;
     outline: none;
     height: 2.5rem;
@@ -37,6 +61,6 @@
     margin-left: auto;
     background-color: var(--secondary);
     cursor: pointer;
-  }
+  } */
 
 </style>

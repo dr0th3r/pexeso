@@ -1,5 +1,8 @@
 import { writable } from "svelte/store";
 
+import { authStore } from "./auth";
+
+
 function useMachine(machine, initialState) {
   const state = writable(initialState);
 
@@ -17,9 +20,9 @@ function gameMachine(state, event) {
         return "playingSingleplayer";
       } else if (event.type === "goToCardMenu") {
         return "inCardMenu";
-      } else if (event.type === "goToLobbyMenu") {
+      } else if (event.type === "goToLobbyMenu" && event.user !== null) {
         return "inLobbyMenu";
-      } else if (event.type === "goToSignInMenu") {
+      } else if (event.type === "goToSignInMenu" && event.user === null) {
         return "inSignInMenu";
       }
     case "playingSingleplayer":

@@ -1,21 +1,78 @@
 <script>
+    import { authStore, authHandlers } from "../stores/auth";
+    
+    import stateMachine from "../stores/state";
+    
+    $: if ($authStore.user) {
+        stateMachine.emit({ type: "goToMainMenu" });
+    }
+
+    $: console.log($authStore.loading);
+
     let signIn = true;
+
+    let errMsg = "";
+
+    $: if ($authStore.error) {
+        errMsg = $authStore.error;
+    }
+
+    function handleSubmit(e) {
+        
+        const formData = new FormData(e.target);
+
+        if (!formData) {
+            errMsg = "Something went wrong! Please try again later";
+            return;
+        }
+
+        const email = formData.get("email");
+        const password = formData.get("password");
+        const confirm_password = formData.get("confirm_password");
+
+        if (!email) {
+            errMsg = "You must provide a email!";
+            return;
+        } else if (!password) {
+            errMsg = "You must provide a password!";
+            return;
+        } else if (!signIn && password !== confirm_password) {
+            errMsg = "Passwords don't match!";
+            return;
+        } else {
+            errMsg = "";
+            authHandlers[signIn ? "signIn" : "signUp"](email, password);
+        }
+    }
 </script>
 
-<h2>{signIn ? "Sign In" : "Sign Up"}</h2>
-<input type="email" placeholder="Username" name="username" required>
-<input type="password" placeholder="Password" name="password" minlength="6">
-{#if !signIn}
-    <input type="password" placeholder="Confirm password" name="confirm_password" minlength="6">
-{/if}
-<button>{signIn ? "Sign In" : "Sign Up"}</button>
-{#if signIn}
-    <span>Don't have an account? <a href="#" on:click={() => signIn = false}>Sign Up</a></span>
-{:else}
-    <span>Already have an account? <a href="#" on:click={() => signIn = true}>Sign In</a></span>
-{/if}
+<form on:submit|preventDefault={handleSubmit} style:filter={$authStore.loading && "brightness(0.8);"}>
+    <h2>{signIn ? "Sign In" : "Sign Up"}</h2>
+    <input type="email" placeholder="Email" name="email" required>
+    <input type="password" placeholder="Password" name="password" minlength="6" required>
+    {#if !signIn}
+        <input type="password" placeholder="Confirm password" name="confirm_password" minlength="6" required>
+    {/if}
+    <button>{signIn ? "Sign In" : "Sign Up"}</button>
+    {#if signIn}
+        <span>Don't have an account? <a href="#" on:click={() => signIn = false}>Sign Up</a></span>
+    {:else}
+        <span>Already have an account? <a href="#" on:click={() => signIn = true}>Sign In</a></span>
+    {/if}
+    {#if errMsg}
+        <span class="err-msg">{errMsg}</span>
+    {/if}
+</form>
 
 <style>
+    form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.8rem;
+        max-width: 15vw;
+    }
+
     input {
         box-sizing: border-box;
         padding: 0.5rem;
@@ -55,5 +112,9 @@
 
     a {
         color: var(--primary);
+    }
+
+    .err-msg {
+        color: var(--error);
     }
 </style>

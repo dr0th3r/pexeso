@@ -1,4 +1,8 @@
 <script>
+  import { authStore } from "../../stores/auth";
+
+  $: singedIn = $authStore.user !== null;
+
   import stateMachine from "$lib/stores/state.js";
 
   export let pexesoPacks;
@@ -38,7 +42,7 @@
   >
 </header>
 <main>
-  <button class="card create-card" on:click={toggleModal}>
+  <button class="card create-card" on:click={toggleModal} disabled={!singedIn}>
     <h2>Create New Pack</h2>
   </button>
   {#each pexesoPacks.filter((pack) => pack && pack?.title.includes(filter)) as pack (pack.id)}
@@ -78,6 +82,7 @@
                 on:click={() => {
                   toggleModal(pack);
                 }}
+                disabled={!singedIn}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -91,7 +96,7 @@
                 >
                 <span class="tooltip">Modify</span>
               </button>
-              <button class="delete-btn" on:click={() => deletePack(pack.id)}>
+              <button class="delete-btn" on:click={() => deletePack(pack.id)} disabled={!singedIn}>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"

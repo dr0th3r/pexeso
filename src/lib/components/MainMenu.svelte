@@ -1,4 +1,6 @@
 <script>
+  import { authStore } from "../stores/auth";
+
   import { fly, fade } from "svelte/transition";
 
   import stateMachine from "$lib/stores/state.js";
@@ -11,9 +13,12 @@
   >Singleplayer</button
 >
 <button
-  on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
+  on:click={() => stateMachine.emit({ type: "goToLobbyMenu", user: $authStore.user })}
   in:fly={{ y: 200, duration: 2000, delay: 100 }}
-  out:fade={{ duration: 500 }}>Multiplayer</button
+  out:fade={{ duration: 500 }}
+  disabled={!$authStore.user}
+  >Multiplayer</button
+
 >
 <button
   in:fly={{ y: 200, duration: 2000, delay: 200 }}
