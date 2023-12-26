@@ -19,6 +19,8 @@ function gameMachine(state, event) {
         return "inCardMenu";
       } else if (event.type === "goToLobbyMenu") {
         return "inLobbyMenu";
+      } else if (event.type === "goToSignInMenu") {
+        return "inSignInMenu";
       }
     case "playingSingleplayer":
       if (event.type === "showStatistics") {
@@ -46,10 +48,14 @@ function gameMachine(state, event) {
       if (event.type === "goToMainMenu") {
         return "inMainMenu";
       }
+    case "inSignInMenu":
+      if (event.type === "goToMainMenu") {
+        return "inMainMenu";
+      }
     default:
       console.log(event.type);
       return state;
   }
-}
+} 
 
 export default useMachine(gameMachine, "inMainMenu");

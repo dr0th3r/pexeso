@@ -8,7 +8,9 @@
       Pexeso
     </a>
   </h1>
-  <div class="profile-img-placeholder"></div>
+  <button class="profile-img-placeholder"
+    on:click={() => stateMachine.emit({ type: "goToSignInMenu" })}
+  ></button>
 </nav>
 
 <style>
@@ -27,6 +29,8 @@
   }
 
   .profile-img-placeholder {
+    border: none;
+    outline: none;
     height: 2.5rem;
     width: 2.5rem;
     border-radius: 100%;
@@ -34,4 +38,5 @@
     background-color: var(--secondary);
     cursor: pointer;
   }
+
 </style>

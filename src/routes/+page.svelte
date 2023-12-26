@@ -6,6 +6,7 @@
   import stateMachine from "$lib/stores/state.js";
   const { state } = stateMachine;
 
+  import SignIn from "../lib/components/SignIn.svelte";
   import MainMenu from "../lib/components/MainMenu.svelte";
   import Gameboard from "../lib/components/Gameboard.svelte";
   import Stats from "../lib/components/Stats.svelte";
@@ -132,6 +133,8 @@
     <Stats stats={playerStats} />
   {:else if $state === "inCardMenu" && transitionComplete}
     <CardMenu pexesoPacks={packs} {choosePack} {updatePacks} />
+  {:else if $state === "inSignInMenu" && transitionComplete}
+    <SignIn />
   {/if}
 </main>
 
