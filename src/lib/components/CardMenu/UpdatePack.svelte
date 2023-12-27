@@ -1,5 +1,11 @@
 <script>
+  import { authStore } from "../../stores/auth";
+
   import Modal from "../Modal.svelte";
+
+  $: if (!$authStore.user) {
+    toggleModal();
+  }
 
   export let toggleModal;
   export let modifiedPack;

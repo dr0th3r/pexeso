@@ -1,9 +1,16 @@
 <script>
+  import { authStore } from "../stores/auth";
+
   import stateMachine from "../stores/state";
 
   export let imgs;
 
   export let socket;
+
+  $: if (!authStore.user) {
+    leaveLobby();
+    stateMachine.emit({ type: "goToMainMenu" });
+  }
 
   socket.on("create lobby", (data) => {
     lobbyInfo = data;

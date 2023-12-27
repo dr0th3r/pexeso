@@ -1,5 +1,7 @@
 <script>
     import { authStore, authHandlers } from "../stores/auth";
+
+    import { userData } from "../stores/userData";
     
     import stateMachine from "../stores/state";
     
@@ -17,7 +19,7 @@
         errMsg = $authStore.error;
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         
         const formData = new FormData(e.target);
 

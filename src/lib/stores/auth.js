@@ -23,7 +23,7 @@ export const authHandlers = {
                 loading: true,
                 error: null
             });
-            await signInWithEmailAndPassword(auth, email, password);
+            return await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
             authStore.set({
                 user: null,
@@ -39,7 +39,8 @@ export const authHandlers = {
                 loading: true,
                 error: null
             });
-            await createUserWithEmailAndPassword(auth, email, password);
+
+            return await createUserWithEmailAndPassword(auth, email, password);
         } catch (error) {
             authStore.set({
                 user: null,

@@ -1,5 +1,6 @@
 import { deleteApp,  getApp, getApps, initializeApp } from 'firebase/app';
 import {getAuth} from 'firebase/auth';
+import {getFirestore, collection, getDocs} from 'firebase/firestore';
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_APIKEY,
@@ -21,3 +22,5 @@ if (!getApps().length) {
 }
 
 export const auth = getAuth(firebaseApp);
+export const db = getFirestore(firebaseApp);
+export const usersRef = collection(db, "users");
