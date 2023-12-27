@@ -160,7 +160,7 @@ const webSocketServer = {
 
         const players = lobby?.players?.filter(
           (player) => player.id !== socket.id
-        );
+        ) || [];
 
         lobby.players = players;
 

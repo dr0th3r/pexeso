@@ -16,7 +16,7 @@ function createUserDataStore() {
                 gamesPlayed: 0,
                 gamesWon: 0,
                 mostFoundInRow: 0,
-                packs: {},
+                packs: [],
             })
         }
     }

@@ -1,6 +1,9 @@
 <script>
   import { authStore } from "../../stores/auth";
 
+  import { db } from "../../firebase/firebase.client";
+  import { arrayUnion, doc, setDoc, updateDoc } from "firebase/firestore";
+
   import Modal from "../Modal.svelte";
 
   $: if (!$authStore.user) {
@@ -28,7 +31,7 @@
     newPackImgs = newPackImgs; //to reload
   }
 
-  function savePack() {
+  async function savePack() {
     if (newPackTitle === "") {
       alert("You must provide pack name!");
       errorMsg = "You must provide pack name!";
@@ -39,10 +42,14 @@
       return;
     }
 
+    let packId;
+
     if (modifiedPack?.id) {
+      packId = modifiedPack.id;
+
       updatePacks((prev) =>
         prev.map((pack) => {
-          if (pack.id === modifiedPack?.id) {
+          if (pack.id === packId) {
             return {
               id: pack.id,
               title: newPackTitle,
@@ -54,14 +61,33 @@
         })
       );
     } else {
-      updatePacks((prev) => [
-        ...prev,
-        {
-          id: prev.length,
+
+      updatePacks((prev) => {
+        packId = prev.length;
+        return [
+          ...prev,
+          {
+            id: packId,
+            title: newPackTitle,
+            imgUrls: newPackImgs,
+          },
+        ]
+    });
+    }
+
+    try {
+      await updateDoc(doc(db, "users", $authStore.user.uid), {
+        packs: arrayUnion({
+          id: packId,
           title: newPackTitle,
           imgUrls: newPackImgs,
-        },
-      ]);
+        })
+      });
+
+      console.log("pack created successfully!");
+    } catch (error) {
+      console.error(error)
+      errorMsg = error.message;
     }
 
     errorMsg = "";
