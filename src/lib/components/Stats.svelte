@@ -1,6 +1,8 @@
 <script>
   import stateMachine from "$lib/stores/state.js";
 
+  import { userData } from "$lib/stores/userData.js";
+
   export let stats; //array of players
   export let multiplayer = false;
   export let socket;
@@ -22,12 +24,12 @@
   <h1>Your Statistics</h1>
   <ul>
     <li>
-      Most pairs found in a row this game: {stats.currentlyMostFoundInRow}
+      Most pairs found in a row in all games: {$userData.mostFoundInRow}
     </li>
     <li>
-      Most pairs found in a row completely: {stats.totalyMostFoundInRow}
+      Least cards flipped per game: {$userData?.leastCardsFlipped}
     </li>
-    <li>Games Played: {stats.gamesPlayed}</li>
+    <li>Games Played: {$userData.gamesPlayed}</li>
     <button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
       >Start New Game</button
     >

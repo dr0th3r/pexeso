@@ -1,103 +1,117 @@
 <script>
   import { authStore } from "../../stores/auth";
-
+  import { userData } from "../../stores/userData";
   import { db } from "../../firebase/firebase.client";
-  import { arrayUnion, doc, setDoc, updateDoc } from "firebase/firestore";
-
-  import Modal from "../Modal.svelte";
+  import { doc, updateDoc } from "firebase/firestore";
+  import { storage, storageRef } from "../../firebase/firebase.client";
+  import { uploadBytes, getDownloadURL, ref, deleteObject } from "firebase/storage";
 
   $: if (!$authStore.user) {
-    toggleModal();
+    $userData.modifiedPack = null;
   }
 
-  export let toggleModal;
-  export let modifiedPack;
-  export let updatePacks;
+  let newPackTitle = $userData?.modifiedPack?.title || "";
+  let newPackImgUrls = $userData?.modifiedPack?.imgUrls || [];
+  let newPackImgs = [];
+  let removedImgIds = [];
 
-  let newPackTitle = modifiedPack?.title || "";
-  let newPackImgs = modifiedPack?.imgUrls || [];
+  let alreadyInPackCount = $userData.modifiedPack.imgUrls.length;
+
+  console.log($userData.modifiedPack, newPackTitle);
 
   let errorMsg = "";
 
   function handleImgUpload(e) {
-    newPackImgs = [
-      ...newPackImgs,
+    newPackImgUrls = [
+      ...newPackImgUrls,
       ...Array.from(e.target.files).map((file) => URL.createObjectURL(file)),
     ];
+
+    newPackImgs = [
+      ...newPackImgs,
+      ...Array.from(e.target.files)
+    ]
   }
 
   function removeImg(id) {
+    newPackImgUrls.splice(id, 1);
+    newPackImgUrls = newPackImgUrls; //to reload
+
     newPackImgs.splice(id, 1);
-    newPackImgs = newPackImgs; //to reload
+
+    if (id < alreadyInPackCount) { //if already was in pack
+      removedImgIds.push(id);
+    }
   }
 
   async function savePack() {
     if (newPackTitle === "") {
-      alert("You must provide pack name!");
+      //alert("You must provide pack name!");
       errorMsg = "You must provide pack name!";
       return;
-    } else if (newPackImgs.length <= 1) {
-      alert("Your pack must have at least 2 different images!");
+    } else if (newPackImgUrls.length <= 1) {
+      //alert("Your pack must have at least 2 different images!");
       errorMsg = "Your pack must have at least 2 different images!";
       return;
     }
 
     let packId;
 
-    if (modifiedPack?.id) {
-      packId = modifiedPack.id;
+    if ($userData?.modifiedPack?.id) {
+      packId = $userData.modifiedPack.id
 
-      updatePacks((prev) =>
-        prev.map((pack) => {
-          if (pack.id === packId) {
-            return {
-              id: pack.id,
-              title: newPackTitle,
-              imgUrls: newPackImgs,
-            };
-          } else {
-            return pack;
-          }
-        })
-      );
+      $userData.modifiedPack.title = newPackTitle;
+      $userData.modifiedPack.imgUrls = newPackImgUrls;
     } else {
+      $userData.packs = [
+        ...$userData.packs,
+        {
+          id: $userData.packs.length,
+          title: newPackTitle,
+          imgUrls: newPackImgUrls,
+        },
+      ];
 
-      updatePacks((prev) => {
-        packId = prev.length;
-        return [
-          ...prev,
-          {
-            id: packId,
-            title: newPackTitle,
-            imgUrls: newPackImgs,
-          },
-        ]
-    });
+      packId = $userData.packs.length - 1;
     }
 
     try {
+      console.log(newPackImgUrls);
+
+      newPackImgUrls = newPackImgUrls.filter((url) => url.includes("firebase"));
+
+      for (let i = 0; i < removedImgIds.length; i++) {
+        const imgRef = ref(storage, `packs/${packId}/${removedImgIds[i]}`);
+        await deleteObject(imgRef);
+      }
+
+      for (let i = 0; i < newPackImgs.length; i++) {
+        const imgRef = ref(storage, `packs/${packId}/${i + alreadyInPackCount}`);
+        const snapshot = await uploadBytes(imgRef, newPackImgs[i]);
+        const snapshotUrl = await getDownloadURL(snapshot.ref);
+        newPackImgUrls.push(snapshotUrl);
+      }
+
       await updateDoc(doc(db, "users", $authStore.user.uid), {
-        packs: arrayUnion({
-          id: packId,
+        [`packs.${packId}`]: {
           title: newPackTitle,
-          imgUrls: newPackImgs,
-        })
+          imgUrls: newPackImgUrls,
+        },
       });
 
-      console.log("pack created successfully!");
+      $userData.packs[packId].imgUrls = newPackImgUrls;
     } catch (error) {
-      console.error(error)
-      errorMsg = error.message;
+      console.log(error);
     }
 
     errorMsg = "";
-    toggleModal();
+    $userData.modifiedPack = null;
   }
 </script>
 
 <header>
   <h2>Creating New Set</h2>
-  <button class="close-btn" on:click={toggleModal}
+  <button class="close-btn" on:click={() => $userData.modifiedPack = null}
     ><svg
       xmlns="http://www.w3.org/2000/svg"
       width="1.1rem"
@@ -151,7 +165,7 @@
   </div>
 </main>
 <div class="cards">
-  {#each newPackImgs as imgUrl, id (id)}
+  {#each newPackImgUrls as imgUrl, id (id)}
     <button class="card" on:click={() => removeImg(id)}>
       <img src={imgUrl} alt="card preview" />
       <svg
@@ -337,3 +351,4 @@
     display: block;
   }
 </style>
+

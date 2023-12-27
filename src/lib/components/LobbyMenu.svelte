@@ -1,14 +1,17 @@
 <script>
   import { authStore } from "../stores/auth";
+  
+  import { userData } from "../stores/userData";
+
+  import defaultPacks  from "$lib/defaultPacks";
 
   import stateMachine from "../stores/state";
 
-  export let imgs;
-
+  let imgs = $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
+  
   export let socket;
 
-  $: if (!authStore.user) {
-    leaveLobby();
+  $: if (!$authStore.user) {
     stateMachine.emit({ type: "goToMainMenu" });
   }
 

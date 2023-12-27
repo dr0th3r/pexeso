@@ -1,35 +1,52 @@
 <script>
   import { authStore } from "../../stores/auth";
+
   import { userData } from "../../stores/userData";
+  import defaultPacks from "$lib/defaultPacks";
+
+  import {usersRef} from "../../firebase/firebase.client"
   
   import stateMachine from "$lib/stores/state.js";
-  
-  $: console.log("User data: ", $userData);
 
+  import { storage } from "../../firebase/firebase.client";
+  import { doc, getDoc, updateDoc } from "firebase/firestore";
+  import { listAll, ref, deleteObject } from "firebase/storage";
+  
   $: singedIn = ($authStore.user !== null);
 
-  $: console.log(singedIn);
+  $: pexesoPacks = $userData.packs || defaultPacks;
 
-
-  export let pexesoPacks;
-  export let toggleModal;
-  export let choosePack;
-  export let updatePacks;
+  console.log($userData.packs);
 
   let filter = "";
   let imgWidth;
 
-  function handleChoosePack(packId) {
-    choosePack(packId);
-    stateMachine.emit({ type: "goToMainMenu" });
-  }
+  function removePack(packId) {
+    $userData.packs = pexesoPacks.filter((pexesoPack) => pexesoPack?.id !== packId);
 
-  function deletePack(packId) {
-    updatePacks((prev) =>
-      prev.filter((pack) => {
-        return pack?.id !== packId;
-      })
-    );
+    getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
+      const packs = userDoc.data().packs;
+
+      delete packs[packId];
+
+      updateDoc(doc(usersRef, $authStore.user.uid), {
+        packs: packs,
+      }).then(() => {
+        console.log("Document successfully updated!");
+      }).catch((error) => {
+        console.error("Error updating document: ", error);
+      });
+    });
+
+    listAll(ref(storage, `packs/${packId}`)).then((res) => {
+      res.items.forEach((itemRef) => {
+        deleteObject(itemRef).then(() => {
+          console.log(`File deleted successfully`);
+        }).catch((error) => {
+          console.log(`Failed to delete file`);
+        });
+      });
+    });
   }
 </script>
 
@@ -48,7 +65,14 @@
   >
 </header>
 <main>
-  <button class="card create-card" on:click={toggleModal} disabled='{!singedIn}'>
+  <button class="card create-card" on:click={() => {
+    $userData.modifiedPack = {
+      id: null,
+      title: "",
+      imgUrls: [],
+    }
+  }
+  } disabled='{!singedIn}'>
     <h2>Create New Pack</h2>
   </button>
   {#each pexesoPacks.filter((pack) => pack && pack?.title.includes(filter)) as pack (pack.id)}
@@ -67,7 +91,10 @@
           <div class="btns">
             <button
               class="choose-btn"
-              on:click={() => handleChoosePack(pack.id)}
+              on:click={() => {
+                $userData.chosenPack = pack;
+                stateMachine.emit({ type: "goToMainMenu" });
+              }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -86,7 +113,7 @@
               <button
                 class="modify-btn"
                 on:click={() => {
-                  toggleModal(pack);
+                  $userData.modifiedPack = pack;
                 }}
                 disabled='{!singedIn}'
               >
@@ -102,7 +129,7 @@
                 >
                 <span class="tooltip">Modify</span>
               </button>
-              <button class="delete-btn" on:click={() => deletePack(pack.id)} disabled='{!singedIn}'>
+              <button class="delete-btn" on:click={() => {removePack(pack.id)}} disabled='{!singedIn}'>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="24"

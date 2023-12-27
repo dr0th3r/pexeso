@@ -1,6 +1,7 @@
 import { deleteApp,  getApp, getApps, initializeApp } from 'firebase/app';
 import {getAuth} from 'firebase/auth';
 import {getFirestore, collection, getDocs} from 'firebase/firestore';
+import {getStorage, ref} from 'firebase/storage';
 
 const firebaseConfig = {
     apiKey: import.meta.env.VITE_APIKEY,
@@ -24,3 +25,6 @@ if (!getApps().length) {
 export const auth = getAuth(firebaseApp);
 export const db = getFirestore(firebaseApp);
 export const usersRef = collection(db, "users");
+
+export const storage = getStorage(firebaseApp);
+export const storageRef = ref(storage, "packs");

@@ -1,14 +1,24 @@
 <script>
   import { fade } from "svelte/transition";
 
+  import { userData } from "$lib/stores/userData.js";
+  import defaultPacks from "../defaultPacks";
+
+  import {authStore} from "$lib/stores/auth"
+
+  import { db } from "../firebase/firebase.client";
+  import { updateDoc, doc } from "firebase/firestore";
+
   import stateMachine from "$lib/stores/state.js";
 
-  export let imgs;
-  export let updateStats;
-
+  
   export let multiplayer = false;
   export let socket;
   export let lobbyInfo;
+
+  let imgs = multiplayer 
+  ? lobbyInfo?.pack
+  : $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
@@ -31,11 +41,6 @@
     console.log(lobbyInfo);
   });
 
-  let localStats = {
-    foundInRow: 0,
-    mostFoundInRow: 0,
-  };
-
   let cards = [];
   let flippedCards = [];
   let matchedPairs = [];
@@ -49,6 +54,7 @@
 
   function createCards(imgUrls) {
     const cards = [];
+
     for (let i = 0, j = 0; i < imgUrls.length; i++, j += 2) {
       cards.push(
         //we have to create pairs of cards - that means 2 cards per 1 img
@@ -73,6 +79,10 @@
       return;
     }
 
+    $userData.currCardsFlipped = $userData.currCardsFlipped + 1 || 1;
+
+    console.log($userData.currCardsFlipped);
+
     if (flippedCards.length === 0) {
       flippedCards = [
         {
@@ -90,7 +100,7 @@
     }
   }
 
-  function handleMatchFound(cardId, groupId) {
+  async function handleMatchFound(cardId, groupId) {
     flippedCards = [
       ...flippedCards,
       {
@@ -100,18 +110,41 @@
     ]; //needed so that both cards will be displayed untill they're both added to matched
     emitFlipCards();
 
-    localStats.foundInRow = localStats.foundInRow + 1;
+    $userData.currFoundInRow = $userData.currFoundInRow + 1;
 
-    localStats.mostFoundInRow =
-      localStats.mostFoundInRow > localStats.foundInRow
-        ? localStats.mostFoundInRow
-        : localStats.foundInRow;
+    $userData.mostFoundInRow =
+      $userData.mostFoundInRow > $userData.currFoundInRow
+        ? $userData.mostFoundInRow
+        : $userData.currFoundInRow;
+
+    console.log($userData.mostFoundInRow);
 
     if (matchedPairs.length === cards.length / 2 - 1) {
+      $userData.leastCardsFlipped = 
+        $userData.currCardsFlipped < $userData.leastCardsFlipped 
+        ? $userData.currCardsFlipped 
+        : $userData.leastCardsFlipped;
+
+      console.log($userData.leastCardsFlipped, $userData.currCardsFlipped);
+    
+      $userData.gamesPlayed = $userData.gamesPlayed + 1;
+
+      $userData.currCardsFlipped = 0;
+      $userData.currFoundInRow = 0;
+
+      try {
+        await updateDoc(doc(db, "users", $authStore.user.uid), {
+          mostFoundInRow: $userData.mostFoundInRow,
+          leastCardsFlipped: $userData.leastCardsFlipped,
+          gamesPlayed: $userData.gamesPlayed,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+
       if (multiplayer) {
         socket.emit("show stats", lobbyId);
       } else {
-        updateStats(localStats);
         stateMachine.emit({ type: "showStatistics" });
       }
     }
@@ -134,7 +167,7 @@
     ]; //needed so that both cards will be displayed untill they're both turned upside down once again
     emitFlipCards();
 
-    localStats.foundInRow = 0;
+    $userData.currFoundInRow = 0;
 
     setTimeout(() => {
       flippedCards = [];

@@ -111,10 +111,9 @@
   {#if $state === "inMainMenu"}
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
-    <Gameboard imgs={packs[chosenPackId].imgUrls} {updateStats} />
+    <Gameboard {updateStats} />
   {:else if $state === "playingMultiplayer" && transitionComplete}
     <Gameboard
-      imgs={lobbyInfo?.pack}
       {updateStats}
       multiplayer={true}
       {socket}
@@ -130,9 +129,9 @@
       lobbyId={lobbyInfo?.id}
     />
   {:else if $state === "inStatistics"}
-    <Stats stats={playerStats} />
+    <Stats />
   {:else if $state === "inCardMenu" && transitionComplete}
-    <CardMenu pexesoPacks={packs} {choosePack} {updatePacks} />
+    <CardMenu />
   {:else if $state === "inSignInMenu" && transitionComplete}
     <SignIn />
   {/if}
