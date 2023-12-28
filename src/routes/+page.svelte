@@ -45,6 +45,11 @@
     stateMachine.emit({ type: "goToMainMenu" });
   });
 
+  socket.on("you left lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });
+
   let lobbyInfo = null;
 
 

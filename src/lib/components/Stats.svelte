@@ -38,28 +38,29 @@
     >
   </ul>
 {:else if stats}
-  <table>
-    <tr>
-      <th>Player</th>
-      <th>Pairs found</th>
-      <th>Most in row</th>
-      <th>Ready to continue</th>
-    </tr>
-    {#each stats as player}
+  <div class="table-container">
+    <table>
       <tr>
-        <td>{player?.name}</td>
-        <td>{player?.stats?.pairsFound}</td>
-        <td>{player?.stats?.mostInRow}</td>
-        <td>{player?.ready}</td>
+        <th>Player</th>
+        <th>Pairs found</th>
+        <th>Most in row</th>
+        <th>Ready to continue</th>
       </tr>
-    {/each}
-  </table>
+      {#each stats as player}
+        <tr>
+          <td>{player?.name}</td>
+          <td>{player?.stats?.pairsFound}</td>
+          <td>{player?.stats?.mostInRow}</td>
+          <td style:color={player?.ready ? "var(--success)" : "var(--error)"}>{player?.ready ? "Ready" : "Not Ready"}</td>
+        </tr>
+      {/each}
+    </table>
+  </div>
   <div class="btns">
     <button on:click={() => socket.emit("toggle ready", lobbyId)}>Ready</button>
     <button
       on:click={() => {
         socket.emit("leave lobby", lobbyId, true);
-        stateMachine.emit({ type: "goToMainMenu" });
       }}>Back To Menu</button
     >
   </div>
@@ -100,18 +101,30 @@
   }
 
   .btns {
+    width: clamp(250px, 90vw, 600px);
     display: flex;
     gap: 0.8rem;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .btns button {
     margin-left: 0;
+    flex: 1 0 40%;
+  }
+
+  .table-container {
+    box-sizing: border-box;
+    width: clamp(250px, 90vw, 630px); /* 600px for the table + 30 px for the padding*/
+    overflow-x: auto;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
   }
 
   table {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     border-collapse: collapse;
-    width: 100%;
   }
 
   th {
@@ -121,6 +134,24 @@
 
   td {
     font-size: 1.3rem;
+  }
+
+  @media (max-width: 600px) {
+    table {
+      width: 100%;
+    }
+
+    th {
+      font-size: 1rem;
+    }
+    
+    td {
+      font-size: 0.9rem;
+    }
+    
+    .btns button {
+      padding: .5rem;
+    }
   }
 
   th,

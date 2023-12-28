@@ -36,6 +36,10 @@
 
     console.log(player);
 
+    if (!player) {
+      console.log(lobbyInfo);
+    }
+
     player.ready = !player.ready;
     lobbyInfo = lobbyInfo; //for svelte to refresh
   });

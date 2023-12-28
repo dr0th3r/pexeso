@@ -166,6 +166,8 @@ const webSocketServer = {
 
         socket.to(lobbyId).emit("player left lobby", players);
 
+        io.in(socket.id).emit("you left lobby");
+
         if (players?.length <= 0 || (players?.length <= 1 && autoLobbyDelete)) {
           socket.to(lobbyId).emit("delete lobby");
           io.socketsLeave(lobbyId);
