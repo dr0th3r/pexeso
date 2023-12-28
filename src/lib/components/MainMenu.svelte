@@ -36,7 +36,7 @@
 
 <style>
   button {
-    width: clamp(250px, 18rem, 1000px);
+    width: clamp(250px, 60vw, 400px);
     font-size: 1.5rem;
     padding: 1rem 2rem;
     border-radius: 8px;

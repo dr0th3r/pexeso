@@ -1,12 +1,14 @@
 <script>
   import { authStore, authHandlers } from "../stores/auth";
-  
+
   import stateMachine from "../stores/state";
 </script>
 
 <nav>
   <h1>
-    <a href="/" on:click={() => stateMachine.emit({ type: "goToMainMenu" })}>
+    <a href="/" on:click={() => {
+        stateMachine.emit({ type: "goToMainMenu" })
+      }}>
       Pexeso
     </a>
   </h1>

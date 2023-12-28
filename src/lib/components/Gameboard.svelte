@@ -83,7 +83,10 @@
 
     console.log($userData.currCardsFlipped);
 
-    if (flippedCards.length === 0) {
+    
+    if (matchedPairs.includes(groupId)) {
+      alert("You can't select a card that has already been found!");
+    } else if (flippedCards.length === 0) {
       flippedCards = [
         {
           cardId: String(cardId),
@@ -93,7 +96,8 @@
       emitFlipCards();
     } else if (flippedCards[0].cardId === String(cardId)) {
       alert("You can't select the same object twice!");
-    } else if (flippedCards[0].groupId === String(groupId)) {
+    }
+    else if (flippedCards[0].groupId === String(groupId)) {
       handleMatchFound(cardId, groupId);
     } else {
       handleNotMatch(cardId, groupId);
@@ -223,7 +227,7 @@
 <div
   class="board"
   in:fade={{ duration: 500 }}
-  style:grid-template-columns={`repeat(${columnCount}, calc(70vh / ${columnCount}))`}
+  style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}), calc(75vh / {columnCount})))"
 >
   {#each cards as { cardId, groupId, imgUrl } (cardId)}
     {@const isFound = matchedPairs.includes(groupId)}
@@ -263,6 +267,12 @@
   .board {
     display: grid;
     gap: 0.8rem;
+  }
+
+  @media (max-width: 600px) {
+    .board {
+      grid-template-columns: repeat(3, min(calc(75vw / 3), calc(75vh / 3)));
+    }
   }
 
   button {

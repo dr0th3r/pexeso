@@ -264,6 +264,11 @@
   label {
     cursor: pointer;
     text-align: center;
+    transition: all 0.3s ease-out;
+  }
+
+  label:hover {
+    background-color: var(--primary);
   }
 
   .file-input {
@@ -273,6 +278,11 @@
   .save-btn {
     position: relative;
     border: 1px solid var(--success);
+    transition: all 0.3s ease-out;
+  }
+
+  .save-btn:hover {
+    background-color: var(--success);
   }
 
   .tooltip {

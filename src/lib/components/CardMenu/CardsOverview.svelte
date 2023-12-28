@@ -54,11 +54,9 @@
   <input
     placeholder="Filter..."
     bind:value={filter}
-    style:width={`${imgWidth}px`}
   />
   <button
     class="home-btn"
-    style:width={`${imgWidth}px`}
     on:click={() => {
       stateMachine.emit({ type: "goToMainMenu" });
     }}>Main Menu</button
@@ -98,8 +96,8 @@
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
+                width="20"
+                height="20"
                 viewBox="0 0 1024 1024"
                 ><path
                   fill="#f0f0f0"
@@ -119,8 +117,8 @@
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   ><path
                     fill="#f0f0f0"
@@ -132,8 +130,8 @@
               <button class="delete-btn" on:click={() => {removePack(pack.id)}} disabled='{!singedIn}'>
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   ><path
                     fill="#f0f0f0"
@@ -152,9 +150,11 @@
 
 <style>
   header {
-    width: clamp(200px, 30vw, 1000px);
+    width: clamp(200px, 80vw, 600px);
     margin-bottom: 1rem;
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 0.8rem;
   }
 
@@ -167,21 +167,31 @@
     border-radius: 8px;
     background-color: transparent;
     color: #f0f0f0;
+    flex: 1;
   }
+
 
   .home-btn {
     padding: 0.5rem;
+    font-size: 1.1rem;
     color: #f0f0f0;
     background-color: transparent;
     border-radius: 8px;
     border: 1px solid var(--primary);
     cursor: pointer;
+    flex: 1;
+    transition: all 0.3s ease-out;
+  }
+
+  .home-btn:hover {
+    background-color: var(--primary);
   }
 
   main {
-    width: clamp(200px, 30vw, 1000px);
+    width: clamp(200px, 80vw, 600px);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    justify-content: center;
     gap: 0.8rem;
   }
 
