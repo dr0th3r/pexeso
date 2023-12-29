@@ -4,15 +4,15 @@
   import { userData } from "../../stores/userData";
   import defaultPacks from "$lib/defaultPacks";
 
-  import {usersRef} from "../../firebase/firebase.client"
-  
+  import { usersRef } from "../../firebase/firebase.client";
+
   import stateMachine from "$lib/stores/state.js";
 
   import { storage } from "../../firebase/firebase.client";
   import { doc, getDoc, updateDoc } from "firebase/firestore";
   import { listAll, ref, deleteObject } from "firebase/storage";
-  
-  $: singedIn = ($authStore.user !== null);
+
+  $: singedIn = $authStore.user !== null;
 
   $: pexesoPacks = $userData.packs || defaultPacks;
 
@@ -22,39 +22,51 @@
   let imgWidth;
 
   function removePack(packId) {
-    $userData.packs = pexesoPacks.filter((pexesoPack) => pexesoPack?.id !== packId);
+    $userData.packs = pexesoPacks.filter(
+      (pexesoPack) => pexesoPack?.id !== packId
+    );
 
-    getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
-      const packs = userDoc.data().packs;
+    console.log($userData.packs);
 
-      delete packs[packId];
+    if (authStore?.user) {
+      getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
+        const packs = userDoc.data().packs;
 
-      updateDoc(doc(usersRef, $authStore.user.uid), {
-        packs: packs,
-      }).then(() => {
-        console.log("Document successfully updated!");
-      }).catch((error) => {
-        console.error("Error updating document: ", error);
+        delete packs[packId];
+
+        updateDoc(doc(usersRef, $authStore.user.uid), {
+          packs: packs,
+        })
+          .then(() => {
+            console.log("Document successfully updated!");
+          })
+          .catch((error) => {
+            console.error("Error updating document: ", error);
+          });
       });
-    });
+    }
 
-    listAll(ref(storage, `packs/${packId}`)).then((res) => {
+    listAll(
+      ref(
+        storage,
+        `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`
+      )
+    ).then((res) => {
       res.items.forEach((itemRef) => {
-        deleteObject(itemRef).then(() => {
-          console.log(`File deleted successfully`);
-        }).catch((error) => {
-          console.log(`Failed to delete file`);
-        });
+        deleteObject(itemRef)
+          .then(() => {
+            console.log(`File deleted successfully`);
+          })
+          .catch((error) => {
+            console.error(error);
+          });
       });
     });
   }
 </script>
 
 <header>
-  <input
-    placeholder="Filter..."
-    bind:value={filter}
-  />
+  <input placeholder="Filter..." bind:value={filter} />
   <button
     class="home-btn"
     on:click={() => {
@@ -63,14 +75,16 @@
   >
 </header>
 <main>
-  <button class="card create-card" on:click={() => {
-    $userData.modifiedPack = {
-      id: null,
-      title: "",
-      imgUrls: [],
-    }
-  }
-  } disabled='{!singedIn}'>
+  <button
+    class="card create-card"
+    on:click={() => {
+      $userData.modifiedPack = {
+        id: null,
+        title: "",
+        imgUrls: [],
+      };
+    }}
+  >
     <h2>Create New Pack</h2>
   </button>
   {#each pexesoPacks.filter((pack) => pack && pack?.title.includes(filter)) as pack (pack.id)}
@@ -106,14 +120,13 @@
               >
               <span class="tooltip">Choose</span>
             </button>
-            {#if pack.id !== 0}
-              <!-- we don't want to enable to modify nor delete the default pack -->
+            {#if pack.id > defaultPacks.length - 1}
+              <!-- we don't want to enable to modify nor delete default packs -->
               <button
                 class="modify-btn"
                 on:click={() => {
                   $userData.modifiedPack = pack;
                 }}
-                disabled='{!singedIn}'
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -127,7 +140,12 @@
                 >
                 <span class="tooltip">Modify</span>
               </button>
-              <button class="delete-btn" on:click={() => {removePack(pack.id)}} disabled='{!singedIn}'>
+              <button
+                class="delete-btn"
+                on:click={() => {
+                  removePack(pack.id);
+                }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="20"
@@ -169,7 +187,6 @@
     color: #f0f0f0;
     flex: 1;
   }
-
 
   .home-btn {
     padding: 0.5rem;

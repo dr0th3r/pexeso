@@ -4,11 +4,12 @@
   import { db } from "../../firebase/firebase.client";
   import { doc, updateDoc } from "firebase/firestore";
   import { storage, storageRef } from "../../firebase/firebase.client";
-  import { uploadBytes, getDownloadURL, ref, deleteObject } from "firebase/storage";
-
-  $: if (!$authStore.user) {
-    $userData.modifiedPack = null;
-  }
+  import {
+    uploadBytes,
+    getDownloadURL,
+    ref,
+    deleteObject,
+  } from "firebase/storage";
 
   let newPackTitle = $userData?.modifiedPack?.title || "";
   let newPackImgUrls = $userData?.modifiedPack?.imgUrls || [];
@@ -27,21 +28,19 @@
       ...Array.from(e.target.files).map((file) => URL.createObjectURL(file)),
     ];
 
-    newPackImgs = [
-      ...newPackImgs,
-      ...Array.from(e.target.files)
-    ]
+    newPackImgs = [...newPackImgs, ...Array.from(e.target.files)];
   }
 
   function removeImg(id) {
+    if (newPackImgUrls[id].includes("firebase")) {
+      removedImgIds.push(id);
+      alreadyInPackCount--;
+    }
+
     newPackImgUrls.splice(id, 1);
     newPackImgUrls = newPackImgUrls; //to reload
 
     newPackImgs.splice(id, 1);
-
-    if (id < alreadyInPackCount) { //if already was in pack
-      removedImgIds.push(id);
-    }
   }
 
   async function savePack() {
@@ -58,7 +57,7 @@
     let packId;
 
     if ($userData?.modifiedPack?.id) {
-      packId = $userData.modifiedPack.id
+      packId = $userData.modifiedPack.id;
 
       $userData.modifiedPack.title = newPackTitle;
       $userData.modifiedPack.imgUrls = newPackImgUrls;
@@ -75,43 +74,60 @@
       packId = $userData.packs.length - 1;
     }
 
-    try {
-      console.log(newPackImgUrls);
+    await uploadPack(packId);
 
-      newPackImgUrls = newPackImgUrls.filter((url) => url.includes("firebase"));
+    errorMsg = "";
+    $userData.modifiedPack = null;
+  }
+
+  async function uploadPack(packId) {
+    try {
+      let imgsFromFirebase = newPackImgUrls.filter((url) =>
+        url.includes("firebase")
+      );
 
       for (let i = 0; i < removedImgIds.length; i++) {
-        const imgRef = ref(storage, `packs/${packId}/${removedImgIds[i]}`);
+        const imgRef = ref(
+          storage,
+          `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}/${
+            removedImgIds[i]
+          }` //if there is no user, than the displayName is "anonymous<some four digits>"
+        );
         await deleteObject(imgRef);
       }
 
       for (let i = 0; i < newPackImgs.length; i++) {
-        const imgRef = ref(storage, `packs/${packId}/${i + alreadyInPackCount}`);
+        const imgRef = ref(
+          storage,
+          `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}/${
+            i + alreadyInPackCount
+          }` //if there is no user, than the displayName is "anonymous<some four digits>"
+        ); //we need to replace this with true random id generator
         const snapshot = await uploadBytes(imgRef, newPackImgs[i]);
         const snapshotUrl = await getDownloadURL(snapshot.ref);
-        newPackImgUrls.push(snapshotUrl);
+        imgsFromFirebase.push(snapshotUrl);
       }
 
-      await updateDoc(doc(db, "users", $authStore.user.uid), {
-        [`packs.${packId}`]: {
-          title: newPackTitle,
-          imgUrls: newPackImgUrls,
-        },
-      });
+      if ($authStore.user) {
+        await updateDoc(doc(db, "users", $authStore.user.uid), {
+          [`packs.${packId}`]: {
+            title: newPackTitle,
+            imgUrls: imgsFromFirebase,
+          },
+        });
+      }
 
-      $userData.packs[packId].imgUrls = newPackImgUrls;
+      $userData.packs[packId].imgUrls = imgsFromFirebase;
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      errorMsg = error.message;
     }
-
-    errorMsg = "";
-    $userData.modifiedPack = null;
   }
 </script>
 
 <header>
   <h2>Creating New Set</h2>
-  <button class="close-btn" on:click={() => $userData.modifiedPack = null}
+  <button class="close-btn" on:click={() => ($userData.modifiedPack = null)}
     ><svg
       xmlns="http://www.w3.org/2000/svg"
       width="1.1rem"
@@ -361,4 +377,3 @@
     display: block;
   }
 </style>
-

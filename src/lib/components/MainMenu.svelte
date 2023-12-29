@@ -23,7 +23,7 @@
   in:fly={{ y: 200, duration: 2000, delay: 200 }}
   out:fade={{ duration: 500 }}
   on:click={() => stateMachine.emit({ type: "goToCardMenu" })}
-  >Manage Cards</button
+  >Manage Packs</button
 >
 <a
   href="/leaderboards"

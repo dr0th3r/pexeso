@@ -28,7 +28,7 @@
       });
 
       if (user === null) {
-        userData.createNewUser("anonymous");
+        userData.createNewUser();
       } else {
         const docRef = doc(db, "users", user.uid);
         getDoc(docRef).then((userDoc) => {
@@ -107,7 +107,6 @@
 
     return unsubscribe;
   });
-
 </script>
 
 <Header />
