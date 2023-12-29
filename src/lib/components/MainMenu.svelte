@@ -13,10 +13,9 @@
   >Singleplayer</button
 >
 <button
-  on:click={() => stateMachine.emit({ type: "goToLobbyMenu", user: $authStore.user })}
+  on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
   in:fly={{ y: 200, duration: 2000, delay: 100 }}
   out:fade={{ duration: 500 }}
-  disabled={!$authStore.user}
   >Multiplayer</button
 
 >
@@ -36,7 +35,7 @@
 
 <style>
   button {
-    width: clamp(250px, 60vw, 400px);
+    width: clamp(150px, 60vw, 250px);
     font-size: 1.5rem;
     padding: 1rem 2rem;
     border-radius: 8px;

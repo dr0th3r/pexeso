@@ -12,10 +12,6 @@
   
   export let socket;
 
-  $: if (!$authStore.user) {
-    stateMachine.emit({ type: "goToMainMenu" });
-  }
-
   socket.on("create lobby", (data) => {
     lobbyInfo = data;
     localState = "inLobby";
@@ -49,6 +45,10 @@
 
   let username = "";
   let joinLobbyId = "";
+
+  $: if ($authStore.user) {
+   username = $userData.displayName; 
+  }
 
   let showCoppiedTooltip = false;
 
@@ -190,6 +190,22 @@
     border: 1px solid var(--primary);
     border-radius: 8px;
     aspect-ratio: 1 / 1;
+  }
+
+  h2, .home-btn {
+    text-wrap: nowrap;
+  }
+
+  
+  @media (max-width: 600px) {
+    h2 {
+      font-size: 1.4rem;
+    }
+    
+    header {
+      display: flex;
+      align-items: center;
+    }
   }
 
   .home-btn,

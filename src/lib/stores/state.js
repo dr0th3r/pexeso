@@ -20,7 +20,7 @@ function gameMachine(state, event) {
         return "playingSingleplayer";
       } else if (event.type === "goToCardMenu") {
         return "inCardMenu";
-      } else if (event.type === "goToLobbyMenu" && event.user !== null) {
+      } else if (event.type === "goToLobbyMenu") {
         return "inLobbyMenu";
       } else if (event.type === "goToSignInMenu" && event.user === null) {
         return "inSignInMenu";
