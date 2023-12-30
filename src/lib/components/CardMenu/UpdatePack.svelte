@@ -11,36 +11,36 @@
     deleteObject,
   } from "firebase/storage";
 
-  let newPackTitle = $userData?.modifiedPack?.title || "";
-  let newPackImgUrls = $userData?.modifiedPack?.imgUrls || [];
-  let newPackImgs = [];
-  let removedImgIds = [];
+  let currImgUrls = $userData?.modifiedPack?.imgUrls || [];
+  let currImgRefPaths = $userData?.modifiedPack?.imgRefPaths || [];
 
-  let alreadyInPackCount = $userData.modifiedPack.imgUrls.length;
+  let newImgs = [];
+
+  let removedImgPositions = [];
+
+  $: newImgUrls = newImgs.map((img) => URL.createObjectURL(img));
+  $: currFilteredImgUrls = currImgUrls.filter((_, i) => !removedImgPositions.includes(i)); //imgs that weren't deleted
+  
+  let newPackTitle = $userData?.modifiedPack?.title || "";
 
   console.log($userData.modifiedPack, newPackTitle);
 
   let errorMsg = "";
 
-  function handleImgUpload(e) {
-    newPackImgUrls = [
-      ...newPackImgUrls,
-      ...Array.from(e.target.files).map((file) => URL.createObjectURL(file)),
-    ];
-
-    newPackImgs = [...newPackImgs, ...Array.from(e.target.files)];
+  function handleClose() {
+    $userData.modifiedPack = null;
   }
 
-  function removeImg(id) {
-    if (newPackImgUrls[id].includes("firebase")) {
-      removedImgIds.push(id);
-      alreadyInPackCount--;
+  function handleImgUpload(e) {
+    newImgs = [...newImgs, ...e.target.files];
+  }
+
+  function removeImg(i, isNew) {
+    if (isNew) {
+      newImgs = newImgs.splice(i, 1);
+    } else {
+      removedImgPositions = [...removedImgPositions, i];
     }
-
-    newPackImgUrls.splice(id, 1);
-    newPackImgUrls = newPackImgUrls; //to reload
-
-    newPackImgs.splice(id, 1);
   }
 
   async function savePack() {
@@ -48,7 +48,7 @@
       //alert("You must provide pack name!");
       errorMsg = "You must provide pack name!";
       return;
-    } else if (newPackImgUrls.length <= 1) {
+    } else if (currFilteredImgUrls?.length + newImgs.length <= 1) {
       //alert("Your pack must have at least 2 different images!");
       errorMsg = "Your pack must have at least 2 different images!";
       return;
@@ -59,75 +59,103 @@
     if ($userData?.modifiedPack?.id) {
       packId = $userData.modifiedPack.id;
 
+      await removeImgsFromDB(currImgRefPaths, removedImgPositions);
+      const [imgUrls, imgRefPaths] = await uploadImgs(packId, newImgs);
+
+      console.log(imgUrls, imgRefPaths);
+      console.log(currFilteredImgUrls, currImgRefPaths, removedImgPositions);
+
+      const updatedImgUrls = imgUrls.concat(currFilteredImgUrls);
+
+      const updatedImgRefPaths = imgRefPaths.concat(
+        currImgRefPaths.filter((_, i) => !removedImgPositions.includes(i))
+      );
+
+      await updateUserProfile(packId, updatedImgUrls, updatedImgRefPaths, newPackTitle);
+            
       $userData.modifiedPack.title = newPackTitle;
-      $userData.modifiedPack.imgUrls = newPackImgUrls;
+      $userData.modifiedPack.imgUrls = updatedImgUrls
+      $userData.modifiedPack.imgRefPaths = updatedImgRefPaths
     } else {
+      packId = crypto.randomUUID();
+
+      const [imgUrls, imgRefPaths] = await uploadImgs(packId, newImgs);
+
+      console.log(imgUrls, imgRefPaths);
+
+      await updateUserProfile(packId, imgUrls, imgRefPaths, newPackTitle);
+
       $userData.packs = [
         ...$userData.packs,
         {
-          id: $userData.packs.length,
+          id: packId,
           title: newPackTitle,
-          imgUrls: newPackImgUrls,
+          imgUrls: imgUrls,
+          imgRefPaths: imgRefPaths,
         },
       ];
-
-      packId = $userData.packs.length - 1;
     }
-
-    await uploadPack(packId);
 
     errorMsg = "";
     $userData.modifiedPack = null;
   }
 
-  async function uploadPack(packId) {
+  async function removeImgsFromDB(imgRefPaths, positions) {
     try {
-      let imgsFromFirebase = newPackImgUrls.filter((url) =>
-        url.includes("firebase")
+      await Promise.all(
+        positions.map((pos) => deleteObject(ref(storage, imgRefPaths[pos])))
+      );
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  async function uploadImgs(packId, imgs) {
+    try {
+      const packRef = ref(storage, `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`); //if there is no user, than the displayName is "anonymous<some-id>"
+      
+        
+      const snapshots = await Promise.all(
+        imgs.map(img => {
+        const imgRef = ref(packRef, `${img.name}`);
+        return uploadBytes(imgRef, img);
+      })
       );
 
-      for (let i = 0; i < removedImgIds.length; i++) {
-        const imgRef = ref(
-          storage,
-          `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}/${
-            removedImgIds[i]
-          }` //if there is no user, than the displayName is "anonymous<some four digits>"
-        );
-        await deleteObject(imgRef);
-      }
+      const snapshotRefPaths = snapshots.map(snapshot => snapshot.ref.fullPath);
 
-      for (let i = 0; i < newPackImgs.length; i++) {
-        const imgRef = ref(
-          storage,
-          `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}/${
-            i + alreadyInPackCount
-          }` //if there is no user, than the displayName is "anonymous<some four digits>"
-        ); //we need to replace this with true random id generator
-        const snapshot = await uploadBytes(imgRef, newPackImgs[i]);
-        const snapshotUrl = await getDownloadURL(snapshot.ref);
-        imgsFromFirebase.push(snapshotUrl);
-      }
+      const snapshotUrls = await Promise.all(
+        snapshots.map(snapshot => getDownloadURL(snapshot.ref))
+      );
 
-      if ($authStore.user) {
-        await updateDoc(doc(db, "users", $authStore.user.uid), {
-          [`packs.${packId}`]: {
-            title: newPackTitle,
-            imgUrls: imgsFromFirebase,
-          },
-        });
-      }
-
-      $userData.packs[packId].imgUrls = imgsFromFirebase;
+      return [snapshotUrls, snapshotRefPaths];
     } catch (error) {
-      console.error(error);
-      errorMsg = error.message;
+      console.error(error)
+    }
+  }
+
+  async function updateUserProfile(packId, imgUrls, imgRefPaths, title) {
+    try {
+      const newData = {
+        [`packs.${packId}`]: {
+          title: title,
+          imgUrls: imgUrls,
+          imgRefPaths: imgRefPaths,
+        },
+      }
+
+      console.log(newData);
+
+      await updateDoc(doc(db, "users", $authStore.user.uid), newData);
+    } catch (error) {
+      console.error(error)
     }
   }
 </script>
 
 <header>
   <h2>Creating New Set</h2>
-  <button class="close-btn" on:click={() => ($userData.modifiedPack = null)}
+  <button class="close-btn" on:click={handleClose}
     ><svg
       xmlns="http://www.w3.org/2000/svg"
       width="1.1rem"
@@ -181,8 +209,23 @@
   </div>
 </main>
 <div class="cards">
-  {#each newPackImgUrls as imgUrl, id (id)}
-    <button class="card" on:click={() => removeImg(id)}>
+  {#each currFilteredImgUrls as imgUrl, i (i)}
+    <button class="card" on:click={() => removeImg(i, false)}>
+      <img src={imgUrl} alt="card preview" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="48"
+        height="48"
+        viewBox="0 0 24 24"
+        ><path
+          fill="#f0f0f0"
+          d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z"
+        /></svg
+      >
+    </button>
+  {/each}
+  {#each newImgUrls as imgUrl, i (i)}
+    <button class="card" on:click={() => removeImg(i, true)}>
       <img src={imgUrl} alt="card preview" />
       <svg
         xmlns="http://www.w3.org/2000/svg"

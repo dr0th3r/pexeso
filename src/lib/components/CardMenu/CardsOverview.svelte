@@ -12,8 +12,6 @@
   import { doc, getDoc, updateDoc } from "firebase/firestore";
   import { listAll, ref, deleteObject } from "firebase/storage";
 
-  $: singedIn = $authStore.user !== null;
-
   $: pexesoPacks = $userData.packs || defaultPacks;
 
   console.log($userData.packs);
@@ -27,24 +25,6 @@
     );
 
     console.log($userData.packs);
-
-    if (authStore?.user) {
-      getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
-        const packs = userDoc.data().packs;
-
-        delete packs[packId];
-
-        updateDoc(doc(usersRef, $authStore.user.uid), {
-          packs: packs,
-        })
-          .then(() => {
-            console.log("Document successfully updated!");
-          })
-          .catch((error) => {
-            console.error("Error updating document: ", error);
-          });
-      });
-    }
 
     listAll(
       ref(
@@ -62,6 +42,26 @@
           });
       });
     });
+
+    if ($authStore?.user) {
+      getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
+        const packs = userDoc.data().packs;
+
+        delete packs[packId];
+
+        updateDoc(doc(usersRef, $authStore.user.uid), {
+          packs: packs,
+        })
+          .then(() => {
+            console.log("Document successfully updated!");
+          })
+          .catch((error) => {
+            console.error("Error updating document: ", error);
+          });
+      }).catch(error => {
+        console.error(error);
+      });
+    }
   }
 </script>
 
@@ -120,7 +120,7 @@
               >
               <span class="tooltip">Choose</span>
             </button>
-            {#if pack.id > defaultPacks.length - 1}
+            {#if !defaultPacks.some((defaultPack) => defaultPack.id === pack.id)}
               <!-- we don't want to enable to modify nor delete default packs -->
               <button
                 class="modify-btn"
@@ -295,6 +295,10 @@
     color: #f0f0f0;
     backdrop-filter: brightness(60%);
     border-radius: 8px;
+  }
+
+  h2 {
+    text-align: center;
   }
 
   .btns {
