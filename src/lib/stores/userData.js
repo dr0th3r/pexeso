@@ -19,6 +19,17 @@ export function createUserTemplate(
   };
 }
 
+export function createDBUserTemplate(displayName = "anonymous", packs=[]) {
+  return {
+    displayName: displayName,
+    chosenPackId: 0,
+    gamesPlayed: 0,
+    leastCardsFlipped: Infinity,
+    mostFoundInRow: 0,
+    packs: packs,
+  };
+}
+
 export const userData = createUserDataStore();
 
 function createUserDataStore() {
@@ -29,5 +40,15 @@ function createUserDataStore() {
     set,
     update,
     createNewUser: (displayName) => set(createUserTemplate(displayName)),
+    setFromDBData: (data) => {
+      set({
+        ...createUserTemplate(data?.displayName),
+        ...data,
+        packs: [
+          ...Object.entries((data?.packs || {})).map(([key, value]) => ({...value, id: key})),
+          ...defaultPacks
+        ]
+      });
+    },
   };
 }

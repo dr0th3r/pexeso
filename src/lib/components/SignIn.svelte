@@ -1,15 +1,11 @@
 <script>
   import { authStore, authHandlers } from "../stores/auth";
 
-  import { userData } from "../stores/userData";
+  import { createDBUserTemplate, userData } from "../stores/userData";
 
   import stateMachine from "../stores/state";
 
   import defaultPacks from "../defaultPacks";
-
-  $: if ($authStore.user) {
-    stateMachine.emit({ type: "goToMainMenu" });
-  }
 
   $: console.log($authStore.loading);
 
@@ -29,22 +25,43 @@
       return;
     }
 
+    const username = formData.get("username");
     const email = formData.get("email");
     const password = formData.get("password");
     const confirm_password = formData.get("confirm_password");
+    const merge_stats = formData.get("merge_stats");
+    const merge_packs = formData.get("merge_packs");
 
     if (!email) {
       errMsg = "You must provide a email!";
-      return;
     } else if (!password) {
       errMsg = "You must provide a password!";
-      return;
     } else if (!signIn && password !== confirm_password) {
       errMsg = "Passwords don't match!";
-      return;
+    } else if (!signIn && username?.length <= 3) {
+      errMsg = "Username must be at least 3 characters long!";
     } else {
-      errMsg = "";
-      authHandlers[signIn ? "signIn" : "signUp"](email, password);
+      let newData = {
+        ...createDBUserTemplate(username),
+      };
+
+      if (merge_stats) {
+        newData = {
+          ...newData,
+          gamesPlayed: $userData.gamesPlayed,
+          leastCardsFlipped: $userData.leastCardsFlipped,
+          mostFoundInRow: $userData.mostFoundInRow,
+        };
+      }
+
+      if (merge_packs) {
+        newData = {
+          ...newData,
+          packs: $userData.packs.filter(pack => defaultPacks.some(defaultPacks => defaultPacks?.id === pack?.id)),
+        };
+      }
+
+      authHandlers[signIn ? "signIn" : "signUp"](email, password, newData, $userData.displayName);
     }
   }
 </script>
@@ -54,6 +71,15 @@
   style:filter={$authStore.loading && "brightness(0.8);"}
 >
   <h2>{signIn ? "Sign In" : "Sign Up"}</h2>
+  {#if !signIn}
+    <input
+      type="text"
+      placeholder="Username"
+      name="username"
+      minlength="3"
+      required
+    />
+  {/if}
   <input type="email" placeholder="Email" name="email" required />
   <input
     type="password"
@@ -70,6 +96,18 @@
       minlength="6"
       required
     />
+  {/if}
+  {#if !$authStore?.user && $userData?.gamesPlayed > 0}
+    <label>
+      <input type="checkbox" name="merge_stats" />
+      Merge statistics
+    </label>
+  {/if}
+  {#if !$authStore?.user && $userData?.packs?.length > defaultPacks?.length}
+    <label>
+      <input type="checkbox" name="merge_packs" />
+      Merge packs
+    </label>
   {/if}
   <button>{signIn ? "Sign In" : "Sign Up"}</button>
   {#if signIn}

@@ -4,21 +4,20 @@
   import { userData } from "$lib/stores/userData.js";
   import defaultPacks from "../defaultPacks";
 
-  import {authStore} from "$lib/stores/auth"
+  import { authStore } from "$lib/stores/auth";
 
   import { db } from "../firebase/firebase.client";
   import { updateDoc, doc } from "firebase/firestore";
 
   import stateMachine from "$lib/stores/state.js";
 
-  
   export let multiplayer = false;
   export let socket;
   export let lobbyInfo;
 
-  let imgs = multiplayer 
-  ? lobbyInfo?.pack
-  : $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
+  let imgs = multiplayer
+    ? lobbyInfo?.pack
+    : $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
@@ -83,7 +82,6 @@
 
     console.log($userData.currCardsFlipped);
 
-    
     if (matchedPairs.includes(groupId)) {
       alert("You can't select a card that has already been found!");
     } else if (flippedCards.length === 0) {
@@ -96,8 +94,7 @@
       emitFlipCards();
     } else if (flippedCards[0].cardId === String(cardId)) {
       alert("You can't select the same object twice!");
-    }
-    else if (flippedCards[0].groupId === String(groupId)) {
+    } else if (flippedCards[0].groupId === String(groupId)) {
       handleMatchFound(cardId, groupId);
     } else {
       handleNotMatch(cardId, groupId);
@@ -124,26 +121,28 @@
     console.log($userData.mostFoundInRow);
 
     if (matchedPairs.length === cards.length / 2 - 1) {
-      $userData.leastCardsFlipped = 
-        $userData.currCardsFlipped < $userData.leastCardsFlipped 
-        ? $userData.currCardsFlipped 
-        : $userData.leastCardsFlipped;
+      $userData.leastCardsFlipped =
+        $userData.currCardsFlipped < $userData.leastCardsFlipped
+          ? $userData.currCardsFlipped
+          : $userData.leastCardsFlipped;
 
       console.log($userData.leastCardsFlipped, $userData.currCardsFlipped);
-    
+
       $userData.gamesPlayed = $userData.gamesPlayed + 1;
 
       $userData.currCardsFlipped = 0;
       $userData.currFoundInRow = 0;
 
-      try {
-        await updateDoc(doc(db, "users", $authStore.user.uid), {
-          mostFoundInRow: $userData.mostFoundInRow,
-          leastCardsFlipped: $userData.leastCardsFlipped,
-          gamesPlayed: $userData.gamesPlayed,
-        });
-      } catch (error) {
-        console.error(error);
+      if ($authStore?.user) {
+        try {
+          await updateDoc(doc(db, "users", $authStore?.user?.uid), {
+            mostFoundInRow: $userData.mostFoundInRow,
+            leastCardsFlipped: $userData.leastCardsFlipped,
+            gamesPlayed: $userData.gamesPlayed,
+          });
+        } catch (error) {
+          console.error(error);
+        }
       }
 
       if (multiplayer) {
@@ -211,6 +210,8 @@
   }
 
   startGame();
+
+  let devMode = true;
 </script>
 
 {#if multiplayer}
@@ -227,7 +228,8 @@
 <div
   class="board"
   in:fade={{ duration: 500 }}
-  style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}), calc(75vh / {columnCount})))"
+  style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}),
+  calc(75vh / {columnCount})))"
 >
   {#each cards as { cardId, groupId, imgUrl } (cardId)}
     {@const isFound = matchedPairs.includes(groupId)}
@@ -238,7 +240,10 @@
       on:click={() => flipCard(cardId, groupId)}
     >
       <div class="img-container" class:found={isFound}>
-        <img src={isFlipped ? imgUrl : "./never_gonna.jpg"} alt="card" />
+        <img
+          src={isFlipped || devMode ? imgUrl : "./never_gonna.jpg"}
+          alt="card"
+        />
       </div>
     </button>
   {/each}

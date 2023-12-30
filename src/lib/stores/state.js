@@ -2,7 +2,6 @@ import { writable } from "svelte/store";
 
 import { authStore } from "./auth";
 
-
 function useMachine(machine, initialState) {
   const state = writable(initialState);
 
@@ -59,6 +58,6 @@ function gameMachine(state, event) {
       console.log(event.type);
       return state;
   }
-} 
+}
 
 export default useMachine(gameMachine, "inMainMenu");
