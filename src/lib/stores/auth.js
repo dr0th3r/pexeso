@@ -15,6 +15,7 @@ import { getDoc, setDoc, doc } from "firebase/firestore";
 
 import stateMachine from "./state.js";
 import { listAll, ref, getBlob, uploadBytes, deleteObject, getDownloadURL } from "firebase/storage";
+import { loadingStore } from "./loading.js";
 
 export const authStore = writable({
   user: null,
@@ -30,7 +31,12 @@ export const authHandlers = {
         loading: true,
         error: null,
       });
+
+      loadingStore.startLoading("Signing in...");
+
       const { user } = await signInWithEmailAndPassword(auth, email, password);
+
+      loadingStore.stopLoading();
 
       console.log(newData.packs);
 
@@ -44,6 +50,8 @@ export const authHandlers = {
       updateProfile(user, {
         displayName: name,
       });
+
+      loadingStore.startLoading("Updating user data...");
 
       const docSnap = await getDoc(doc(db, "users", user.uid));
 
@@ -73,9 +81,10 @@ export const authHandlers = {
         };
         await setDoc(doc(db, "users", user.uid), updatedData);
 
-
         userData.setFromDBData(updatedData);
       }
+
+      loadingStore.stopLoading();
 
       stateMachine.emit({ type: "goToMainMenu" });
     } catch (error) {
@@ -97,11 +106,15 @@ export const authHandlers = {
         error: null,
       });
 
+      loadingStore.startLoading("Signing up...");
+
       const { user } = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
+
+      loadingStore.stopLoading();
 
       initialData?.packs?.filter(pack => pack.length > 0);
 
@@ -109,7 +122,11 @@ export const authHandlers = {
         initialData.packs = await movePacks(initialData.packs, oldDisplayName, user.uid);
       }
 
+      loadingStore.startLoading("Creating user profile...");
+
       await setDoc(doc(db, "users", user.uid), initialData);
+
+      loadingStore.stopLoading();
 
       console.log(initialData);
 
@@ -175,69 +192,77 @@ export const authHandlers = {
   },
 };
 
-async function moveFiles(sourceRef, destRef) {
-  // Download all files from oldRef
-  const newFileUrls = [];
-  const newFileRefPaths = [];
-
-  const promises = [];
-
-  const files = await listAll(ref(storage, sourceRef));
-  for (const file of files.items) {
-    // Copy each file to the new location
-    const newFileRef = ref(storage, `${destRef}/${file.name}`);
-    promises.push(
-      getBlob(file).then(blob => {
-        return uploadBytes(newFileRef, blob).then((snapshot) => {
-          return getDownloadURL(snapshot.ref).then((url) => {
-            newFileUrls.push(url);
-            newFileRefPaths.push(snapshot.ref.fullPath);
-            return deleteObject(file).then(() => {
-              console.log('File moved')
-            }).catch(err => console.error(err));
-          }).catch(err => console.error(err));
-        }).catch(err => console.error(err));
-      })
-    )
-  }
-
+async function moveFiles(srcRef, destRef, updateProgress) {
   try {
-    await Promise.all(promises);
-    console.log(newFileUrls);
+    const files = await listAll(srcRef);
+  
+    return Promise.all(files.items.map(async (file) => {
+      const newFileRef = ref(storage, `${destRef}/${file.name}`);
 
-    return {
-      urls: newFileUrls,
-      paths: newFileRefPaths
-    };
+      return new Promise(async (resolve, reject) => {
+        try {
+          const blob = await getBlob(file);
+          const snapshot = await uploadBytes(newFileRef, blob);
+          const url = await getDownloadURL(snapshot.ref);
+          await deleteObject(file);
+
+          updateProgress();
+          resolve({
+            url,
+            path: snapshot.ref.fullPath
+          });
+        } catch (error) {
+          reject(error);
+        }
+      })
+    }))
+
   } catch (error) {
-    console.error(error);
-    return []
+    throw new Error(error);
   }
 }
 
 async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; newId = user.uid
-  const promises = [];
-
-  for (const pack of packs) {
-    const sourceRef = ref(storage, `packs/${oldId}/${pack?.id}`)
-    const destRef = ref(storage, `packs/${newId}/${pack.id}`)
-
-    promises.push(moveFiles(sourceRef, destRef)); 
-  }
-
+  
+  const imgsCount = packs.reduce((acc, curr) => acc + curr.imgRefPaths.length, 0);
+  let uploadedCount = 0;
+  
   try {
-    const newPacksData = await Promise.all(promises);
+    loadingStore.startLoading("Moving images...");
 
-    return newPacksData.reduce((acc, curr, i) => {
-      const pack = packs[i];
-      acc[pack.id] = {
-        title: pack.title,
-        imgRefPaths: curr.paths,
-        imgUrls: curr.urls
+    const newPacksData = await Promise.all(packs.map(pack => {
+      const srcRef = ref(storage, `packs/${oldId}/${pack?.id}`)
+      const destRef = ref(storage, `packs/${newId}/${pack.id}`)
+  
+      return new Promise(async (resolve, reject) => {
+        try {
+          const newData = await moveFiles(srcRef, destRef, () => {
+            loadingStore.updateProgress(++uploadedCount / imgsCount);
+          });
+
+          resolve({
+            ...pack,
+            imgRefPaths: newData.map(file => file.path),
+            imgUrls: newData.map(file => file.url)
+          });
+        } catch (error) {
+          reject(error);
+        }
+      })
+    }))
+
+    loadingStore.stopLoading();
+
+    return newPacksData.reduce((acc, curr) => {
+      acc[curr.id] = {
+        title: curr.title,
+        imgRefPaths: curr.imgRefPaths,
+        imgUrls: curr.imgUrls
       };
       return acc;
     }, {});
   } catch (error) {
-    console.error(error);
+    console.error(error)
   }
+
 }
