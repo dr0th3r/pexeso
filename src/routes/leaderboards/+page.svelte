@@ -1,31 +1,42 @@
 <script>
-  let users = [
-    {
-      username: "Cupomaz",
-      pexesosSolved: 7,
-      leastMoves: 13,
-      mostPairsFoundInRow: 4,
-      country: "DE",
-    },
-    {
-      username: "dr0th3r",
-      pexesosSolved: 32,
-      leastMoves: 10,
-      mostPairsFoundInRow: 6,
-      country: "CZ",
-    },
-    {
-      username: "government",
-      pexesosSolved: 16,
-      leastMoves: 15,
-      mostPairsFoundInRow: 5,
-      country: "UG",
-    },
-  ];
+  import { onMount } from "svelte";
 
-  $: categories = Object.keys(users[0]);
+  import { usersRef } from "$lib/firebase/firebase.client.js";
+  import { query, orderBy, limit, getDocs } from "firebase/firestore";
 
-  let sortCategory = "pexesosSolved";
+  import { loadingStore } from "$lib/stores/loading.js";
+
+  onMount(async () => {
+    const snapshot = await getDocs(
+      query(usersRef, orderBy("gamesPlayed"), limit(10))
+    );
+    users = snapshot.docs.map((doc) => {
+      const docData = doc.data();
+      console.log(docData.gamesPlayed);
+
+      return {
+        username: docData.displayName,
+        gamesPlayed: docData.gamesPlayed || 0,
+        leastMoves: docData.leastCardsFlipped,
+        mostPairsFoundInRow: docData.mostFoundInRow,
+      };
+    });
+  });
+
+  let users = [];
+
+  $: if (users.length === 0) {
+    loadingStore.startLoading("Loading leaderboards...");
+  } else {
+    loadingStore.updateProgress(1);
+    setTimeout(() => {
+      loadingStore.stopLoading();
+    }, 500);
+  }
+
+  $: categories = Object.keys(users[0] || {});
+
+  let sortCategory = "gamesPlayed";
   let isDescending = true;
 
   function handleFilter(category) {
@@ -61,11 +72,9 @@
         </tr>
         {#each users.sort((a, b) => (a[sortCategory] > b[sortCategory] ? 1 : -1) * (isDescending ? -1 : 1)) as user}
           <tr>
-            <td>{user.username}</td>
-            <td>{user.pexesosSolved}</td>
-            <td>{user.leastMoves}</td>
-            <td>{user.mostPairsFoundInRow}</td>
-            <td>{user.country}</td>
+            {#each categories as category}
+              <td>{user[category]}</td>
+            {/each}
           </tr>
         {/each}
       </thead>
