@@ -11,6 +11,8 @@
     deleteObject,
   } from "firebase/storage";
 
+  import Compressor from "compressorjs";
+
   let currImgUrls = $userData?.modifiedPack?.imgUrls || [];
   let currImgRefPaths = $userData?.modifiedPack?.imgRefPaths || [];
 
@@ -118,10 +120,27 @@
     try {
       const packRef = ref(storage, `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`); //if there is no user, than the displayName is "anonymous<some-id>"
       
-        
+      const compressionOptions = {
+        quality: 0.6,
+        maxWidth: 500,
+        maxHeight: 500,
+      };
+
       const snapshots = await Promise.all(
         imgs.map(img => {
         const imgRef = ref(packRef, `${img.name}`);
+        
+        new Compressor(img, {
+          ...compressionOptions,
+          success: async (compressedImg) => {
+            console.log("compressedImg");
+            return uploadBytes(imgRef, compressedImg);
+          },
+          error: (error) => {
+            throw new Error(error);
+          },
+        });
+
         return uploadBytes(imgRef, img);
       })
       );

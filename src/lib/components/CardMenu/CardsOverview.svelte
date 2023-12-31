@@ -207,9 +207,15 @@
   main {
     width: clamp(200px, 80vw, 600px);
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     justify-content: center;
     gap: 0.8rem;
+  }
+
+  @media (max-width: 600px) {
+    main {
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    }
   }
 
   .card {
