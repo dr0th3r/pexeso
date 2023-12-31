@@ -12,6 +12,7 @@
   } from "firebase/storage";
 
   import Compressor from "compressorjs";
+  import { loadingStore } from "../../stores/loading";
 
   let currImgUrls = $userData?.modifiedPack?.imgUrls || [];
   let currImgRefPaths = $userData?.modifiedPack?.imgRefPaths || [];
@@ -21,8 +22,10 @@
   let removedImgPositions = [];
 
   $: newImgUrls = newImgs.map((img) => URL.createObjectURL(img));
-  $: currFilteredImgUrls = currImgUrls.filter((_, i) => !removedImgPositions.includes(i)); //imgs that weren't deleted
-  
+  $: currFilteredImgUrls = currImgUrls.filter(
+    (_, i) => !removedImgPositions.includes(i)
+  ); //imgs that weren't deleted
+
   let newPackTitle = $userData?.modifiedPack?.title || "";
 
   console.log($userData.modifiedPack, newPackTitle);
@@ -39,7 +42,8 @@
 
   function removeImg(i, isNew) {
     if (isNew) {
-      newImgs = newImgs.splice(i, 1);
+      newImgs.splice(i, 1);
+      newImgs = newImgs;
     } else {
       removedImgPositions = [...removedImgPositions, i];
     }
@@ -74,12 +78,17 @@
       );
 
       if ($authStore.user) {
-        await updateUserProfile(packId, updatedImgUrls, updatedImgRefPaths, newPackTitle);
+        await updateUserProfile(
+          packId,
+          updatedImgUrls,
+          updatedImgRefPaths,
+          newPackTitle
+        );
       }
-            
+
       $userData.modifiedPack.title = newPackTitle;
-      $userData.modifiedPack.imgUrls = updatedImgUrls
-      $userData.modifiedPack.imgRefPaths = updatedImgRefPaths
+      $userData.modifiedPack.imgUrls = updatedImgUrls;
+      $userData.modifiedPack.imgRefPaths = updatedImgRefPaths;
     } else {
       packId = crypto.randomUUID();
 
@@ -108,52 +117,90 @@
 
   async function removeImgsFromDB(imgRefPaths, positions) {
     try {
+      const posCount = positions.length;
+
+      loadingStore.startLoading("Removing images...");
       await Promise.all(
-        positions.map((pos) => deleteObject(ref(storage, imgRefPaths[pos])))
+        positions.map((pos, i) => {
+          loadingStore.updateProgress((i + 1) / posCount);
+          deleteObject(ref(storage, imgRefPaths[pos]));
+        })
       );
+
+      loadingStore.stopLoading();
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
+  }
+
+  async function compressAndUploadImg(img, packRef, updateProgress) {
+    const compressionOptions = {
+      quality: 0.6,
+      maxWidth: 500,
+      maxHeight: 500,
+    };
+
+    console.log(img.name);
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        new Compressor(img, {
+          ...compressionOptions,
+          success: async(compressedImg) => {
+            try {
+              const snapshot = await uploadBytes(ref(packRef, img.name), compressedImg);
+              updateProgress();
+              resolve(snapshot);
+            } catch (error) {
+              reject(new Error(error));
+            }
+          },
+        })
+      } catch (error) {
+        reject(new Error(`Error compressing image ${img.name}: ${error.message}`));
+      }
+    })
   }
 
   async function uploadImgs(packId, imgs) {
     try {
-      const packRef = ref(storage, `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`); //if there is no user, than the displayName is "anonymous<some-id>"
-      
-      const compressionOptions = {
-        quality: 0.6,
-        maxWidth: 500,
-        maxHeight: 500,
-      };
+      const packRef = ref(
+        storage,
+        `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`
+      ); //if there is no user, than the displayName is "anonymous<some-id>"
+
+
+      const imgCount = imgs.length; 
+      let uploadedCount = 0;
+
+      loadingStore.startLoading("Uploading images...");
 
       const snapshots = await Promise.all(
-        imgs.map(img => {
-        const imgRef = ref(packRef, `${img.name}`);
-        
-        new Compressor(img, {
-          ...compressionOptions,
-          success: async (compressedImg) => {
-            console.log("compressedImg");
-            return uploadBytes(imgRef, compressedImg);
-          },
-          error: (error) => {
-            throw new Error(error);
-          },
-        });
+        imgs.map(img => compressAndUploadImg(img, packRef, () => {
+          loadingStore.updateProgress(++uploadedCount / imgCount);
+        })
+      ));
 
-        return uploadBytes(imgRef, img);
-      })
+      console.log(snapshots);
+
+      loadingStore.stopLoading();
+
+      const snapshotRefPaths = snapshots.map(
+        (snapshot) => snapshot.ref.fullPath
       );
 
-      const snapshotRefPaths = snapshots.map(snapshot => snapshot.ref.fullPath);
+      loadingStore.startLoading("Getting image URLs...");
 
+      //not necessary updating progress because it's super fast
       const snapshotUrls = await Promise.all(
-        snapshots.map(snapshot => getDownloadURL(snapshot.ref))
+        snapshots.map((snapshot) => getDownloadURL(snapshot.ref))
       );
+
+      loadingStore.stopLoading();
 
       return [snapshotUrls, snapshotRefPaths];
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   }
 
@@ -165,13 +212,17 @@
           imgUrls: imgUrls,
           imgRefPaths: imgRefPaths,
         },
-      }
+      };
 
       console.log(newData);
 
+      loadingStore.startLoading("Updating user profile...");
+
       await updateDoc(doc(db, "users", $authStore.user.uid), newData);
+
+      loadingStore.stopLoading();
     } catch (error) {
-      console.error(error)
+      console.error(error);
     }
   }
 </script>

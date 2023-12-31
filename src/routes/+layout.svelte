@@ -1,34 +1,46 @@
 <script>
   import Header from "../lib/components/Header.svelte";
+  import Loading from "../lib/components/Loading.svelte";
 
   import { onMount } from "svelte";
   import { auth } from "$lib/firebase/firebase.client";
   import { authStore } from "$lib/stores/auth";
-
+  
   import { getDoc, doc } from "firebase/firestore";
-
+  
   import { userData } from "$lib/stores/userData";
   import { usersRef } from "../lib/firebase/firebase.client";
+
+  import { loadingStore } from "../lib/stores/loading";
 
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);
 
-      authStore.update((curr) => {
-        return {
-          ...curr,
-          isLoading: false,
-          user: user,
-        };
-      });
+      authStore.update((curr) => ({
+        ...curr,
+        user: user,
+        loading: false,
+        error: null
+      }))
 
       if (user === null) {
         userData.createNewUser();
       } else {
+        let loadingTimeout = setTimeout(() => {
+          loadingStore.startLoading("Loading user data...");
+        }, 3000); //if it takes longer than 3s to load user data, show loading screen
+
         const userDoc = await getDoc(doc(usersRef, user.uid))
 
         if (userDoc.exists()) {
           userData.setFromDBData(userDoc.data());
+        }
+
+        clearTimeout(loadingTimeout);
+
+        if ($loadingStore.isLoading) { //if the timeout was shown, show 100% and close after .5s
+          loadingStore.stopLoading();
         }
       }
 
@@ -41,6 +53,9 @@
 <div class="slot-container">
   <slot />
 </div>
+{#if $loadingStore.isLoading}
+  <Loading />
+{/if}
 
 <style>
   .slot-container {
