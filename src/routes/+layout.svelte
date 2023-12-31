@@ -5,18 +5,13 @@
   import { auth } from "$lib/firebase/firebase.client";
   import { authStore } from "$lib/stores/auth";
 
-  import { userData, createUserTemplate } from "$lib/stores/userData";
-  import defaultPacks from "../lib/defaultPacks";
+  import { getDoc, doc } from "firebase/firestore";
 
-  import { db } from "$lib/firebase/firebase.client";
-  import { getDoc, doc, setDoc } from "firebase/firestore";
-
-  import stateMachine from "$lib/stores/state.js";
-  import { updateProfile } from "firebase/auth";
+  import { userData } from "$lib/stores/userData";
   import { usersRef } from "../lib/firebase/firebase.client";
 
   onMount(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);
 
       authStore.update((curr) => {
@@ -29,6 +24,12 @@
 
       if (user === null) {
         userData.createNewUser();
+      } else {
+        const userDoc = await getDoc(doc(usersRef, user.uid))
+
+        if (userDoc.exists()) {
+          userData.setFromDBData(userDoc.data());
+        }
       }
 
       return unsubscribe;

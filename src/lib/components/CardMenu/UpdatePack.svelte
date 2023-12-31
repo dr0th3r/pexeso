@@ -3,7 +3,7 @@
   import { userData } from "../../stores/userData";
   import { db } from "../../firebase/firebase.client";
   import { doc, updateDoc } from "firebase/firestore";
-  import { storage, storageRef } from "../../firebase/firebase.client";
+  import { storage } from "../../firebase/firebase.client";
   import {
     uploadBytes,
     getDownloadURL,
@@ -71,7 +71,9 @@
         currImgRefPaths.filter((_, i) => !removedImgPositions.includes(i))
       );
 
-      await updateUserProfile(packId, updatedImgUrls, updatedImgRefPaths, newPackTitle);
+      if ($authStore.user) {
+        await updateUserProfile(packId, updatedImgUrls, updatedImgRefPaths, newPackTitle);
+      }
             
       $userData.modifiedPack.title = newPackTitle;
       $userData.modifiedPack.imgUrls = updatedImgUrls
@@ -83,7 +85,9 @@
 
       console.log(imgUrls, imgRefPaths);
 
-      await updateUserProfile(packId, imgUrls, imgRefPaths, newPackTitle);
+      if ($authStore.user) {
+        await updateUserProfile(packId, imgUrls, imgRefPaths, newPackTitle);
+      }
 
       $userData.packs = [
         ...$userData.packs,

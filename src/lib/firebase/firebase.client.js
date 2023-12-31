@@ -27,4 +27,3 @@ export const db = getFirestore(firebaseApp);
 export const usersRef = collection(db, "users");
 
 export const storage = getStorage(firebaseApp);
-export const storageRef = ref(storage, "packs");

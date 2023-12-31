@@ -32,6 +32,7 @@ export const authHandlers = {
       });
       const { user } = await signInWithEmailAndPassword(auth, email, password);
 
+      console.log(newData.packs);
 
       if (newData?.packs?.length > 0) {
         newData.packs = await movePacks(newData.packs, oldDisplayName, user.uid);
@@ -177,6 +178,7 @@ export const authHandlers = {
 async function moveFiles(sourceRef, destRef) {
   // Download all files from oldRef
   const newFileUrls = [];
+  const newFileRefPaths = [];
 
   const promises = [];
 
@@ -189,6 +191,7 @@ async function moveFiles(sourceRef, destRef) {
         return uploadBytes(newFileRef, blob).then((snapshot) => {
           return getDownloadURL(snapshot.ref).then((url) => {
             newFileUrls.push(url);
+            newFileRefPaths.push(snapshot.ref.fullPath);
             return deleteObject(file).then(() => {
               console.log('File moved')
             }).catch(err => console.error(err));
@@ -202,30 +205,35 @@ async function moveFiles(sourceRef, destRef) {
     await Promise.all(promises);
     console.log(newFileUrls);
 
-    return newFileUrls;
+    return {
+      urls: newFileUrls,
+      paths: newFileRefPaths
+    };
   } catch (error) {
     console.error(error);
     return []
   }
 }
 
-async function movePacks(packs, oldDisplayName, newDisplayName) { //oldDisplayName = anonymouse<some-id>; newDisplayName = user.uid
+async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; newId = user.uid
   const promises = [];
 
   for (const pack of packs) {
-    const sourceRef = ref(storage, `packs/${oldDisplayName}/${pack?.id}`)
-    const destRef = ref(storage, `packs/${newDisplayName}/${pack.id}`)
+    const sourceRef = ref(storage, `packs/${oldId}/${pack?.id}`)
+    const destRef = ref(storage, `packs/${newId}/${pack.id}`)
 
     promises.push(moveFiles(sourceRef, destRef)); 
   }
 
   try {
-    const results = await Promise.all(promises);
-    
-    return results.reduce((acc, curr, i) => {
-      acc[packs[i].id] = {
-        ...packs[i],
-        imgUrls: curr
+    const newPacksData = await Promise.all(promises);
+
+    return newPacksData.reduce((acc, curr, i) => {
+      const pack = packs[i];
+      acc[pack.id] = {
+        title: pack.title,
+        imgRefPaths: curr.paths,
+        imgUrls: curr.urls
       };
       return acc;
     }, {});

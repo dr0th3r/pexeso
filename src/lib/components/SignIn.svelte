@@ -57,7 +57,7 @@
       if (merge_packs) {
         newData = {
           ...newData,
-          packs: $userData.packs.filter(pack => defaultPacks.some(defaultPacks => defaultPacks?.id === pack?.id)),
+          packs: $userData.packs.filter(pack => defaultPacks.some(defaultPacks => defaultPacks?.id !== pack?.id)),
         };
       }
 
