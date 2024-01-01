@@ -26,12 +26,6 @@
     console.log(lobbyInfo);
   });
 
-  socket?.on("next player", (nextPlayer) => {
-    lobbyInfo.playerOnTurn = nextPlayer;
-
-    lobbyInfo = lobbyInfo;
-  });
-
   socket?.on("show stats", (players) => {
     lobbyInfo.players = players;
     lobbyInfo = lobbyInfo;

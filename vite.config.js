@@ -3,7 +3,6 @@ import { defineConfig } from "vite";
 
 import { Server } from "socket.io";
 
-const lobbies = {};
 
 const webSocketServer = {
   name: "webSocketServer",
@@ -12,101 +11,92 @@ const webSocketServer = {
 
     const io = new Server(server.httpServer);
 
+    class Lobby {
+      playerOnTurn = 0;
+
+      constructor(lobbyInfo, cards) {
+        this.lobbyInfo = lobbyInfo;
+        this.cards = cards;
+      }
+
+      in() {
+        return io.in(lobbyInfo.lobbyId);
+      }
+
+      nextPlayer() {
+        this.playerOnTurn++;
+        if(this.playerOnTurn >= this.lobbyInfo.players.length)
+          this.playerOnTurn = 0;
+
+        this.in().emit("next player", this.playerOnTurn);
+      }
+    }
+    
+    const lobbies = {};
+
     io.on("connection", (socket) => {
-      let lobbyIdStore = null;
+      let lobby = null;
 
       socket.emit("testingEvent", "Hello World!");
 
       socket.on("create lobby", (username, pack) => {
         let socketId = socket.id;
 
-        const lobbyId = `${socketId}_lobby`;
-        lobbyIdStore = lobbyId;
+        let lobbyId = `${socketId}_lobby`;
 
         const lobbyInfo = {
           //lobby template
           id: lobbyId,
           pack: pack,
-          playerOnTurn: 0,
           joinable: true,
-          players: [
-            {
-              id: socketId,
-              name: username,
-              ready: false,
-              stats: {
-                pairsFound: 0,
-                mostInRow: 0,
-                currMostInRow: 0,
-              },
-            },
-          ],
+          players: [],
         };
 
-        lobbies[lobbyId] = lobbyInfo;
+        lobbies[lobbyId] = new Lobby(lobbyInfo, createCards(pack));
+        lobby = lobbies[lobbyId];
 
-        socket.join(lobbyId);
-
+        joinGame(lobbyId, username);
         io.to(socketId).emit("create lobby", lobbyInfo);
       });
 
       socket.on("join lobby", (username, lobbyId) => {
         if (!lobbies[lobbyId]) {
           socket.emit("error", "No such lobby");
-        } else if (!lobbies[lobbyId]?.joinable) {
+        } else if (!lobbies[lobbyId]?.lobbyInfo.joinable) {
           console.log("user attempted to join running lobby");
           socket.emit("error", "You attempted to join running lobby");
         } else {
-          lobbyIdStore = lobbyId;
-
-          lobbies[lobbyId]["players"].push({
-            id: socket.id,
-            name: username,
-            ready: false,
-            stats: {
-              pairsFound: 0,
-              mostInRow: 0,
-              currMostInRow: 0,
-            },
-          });
-
-          const lobbyInfo = lobbies[lobbyId];
-
-          socket.join(lobbyId);
-
-          io.in(lobbyId).emit("join lobby", lobbyInfo);
+          lobby = lobbies[lobbyId];
+          
+          joinGame(lobbyId, username);
+          lobby.in().emit("join lobby", lobby);
         }
       });
 
-      socket.on("toggle ready", (lobbyId) => {
-        const lobby = lobbies[lobbyId];
+      socket.on("toggle ready", () => {
+        const lobbyInfo = lobby.lobbyInfo;
         const players = lobby?.players;
 
         const player = players?.find((player) => player.id === socket.id);
-        const isReady = player.ready;
 
-        player.ready = !isReady;
+        player.ready = !player.ready;
 
-        io.in(lobbyId).emit("toggle ready", socket.id);
+        lobby.in().emit("toggle ready", socket.id);
 
-        let allPlayersReady = players.find((player) => !player.ready)
-          ? false
-          : true;
-
-        if (allPlayersReady) {
+        if (!players.find((player) => !player.ready)) {
           players.forEach((player) => (player.ready = false));
-          lobby.playerOnTurn = 0;
-          lobby.joinable = false;
-          io.in(lobbyId).emit("start game", lobby);
+          lobbyInfo.playerOnTurn = 0;
+          lobbyInfo.joinable = false;
+          lobby.in().emit("start game", lobbyInfo);
         }
       });
 
-      socket.on("flip card", (lobbyId, flippedCards) => {
-        socket.to(lobbyId).emit("flip card", flippedCards);
+      socket.on("flip card", index => {
+
       });
 
-      socket.on("card match", (lobbyId, matchedPairs) => {
-        const playerStats = lobbies[lobbyId]?.players.find(
+      socket.on("card match", (matchedPairs) => {
+        const playerStats = lobbies[lobbyId]?.lobbyInfo.players.find(
           (player) => player.id === socket.id
         )?.stats;
 
@@ -116,10 +106,10 @@ const webSocketServer = {
         playerStats.mostInRow =
           playerStats.currMostInRow || playerStats.mostInRow || 1;
 
-        socket.to(lobbyId).emit("card match", matchedPairs);
+        lobby.in().emit("card match", matchedPairs);
       });
 
-      socket.on("next player", (lobbyId) => {
+     /* socket.on("next player", (lobbyId) => {
         //possible optimalization - send it only to previously on turn and now on turn player
         //there are also many more possible optimalizations
         const lobby = lobbies[lobbyId];
@@ -137,9 +127,9 @@ const webSocketServer = {
         lobby.playerOnTurn = nextPlayer;
 
         io.in(lobbyId).emit("next player", nextPlayer);
-      });
+      });*/
 
-      socket.on("show stats", (lobbyId) => {
+      socket.on("show stats", () => {
         //we need to update stats first
         const playerStats = lobbies[lobbyId]?.players.find(
           (player) => player.id === socket.id
@@ -152,7 +142,7 @@ const webSocketServer = {
           playerStats.currMostInRow || playerStats.mostInRow || 1;
 
         //and then display them
-        io.in(lobbyId).emit("show stats", lobbies[lobbyId]?.players);
+        lobby.in().emit("show stats", lobbies[lobbyId]?.players);
       });
 
       socket.on("leave lobby", (lobbyId, autoLobbyDelete = false) => {
@@ -177,35 +167,73 @@ const webSocketServer = {
       });
 
       socket.on("disconnect", () => {
-        if (lobbyIdStore !== null) {
-          const lobby = lobbies[lobbyIdStore];
+        if (lobby !== null) {
+          const lobbyId = lobby.lobbyInfo.id;
 
           if (lobby.players[lobby.playerOnTurn]?.id === socket?.id) {
             //if the disconnected player was on turn, we don't want any cards to remain flipped
-            socket.to(lobbyIdStore).emit("flip card", []);
+            socket.to(lobbyId).emit("flip card", []);
           }
 
-          lobby.players = lobby.players.filter(
+          lobby.lobbyInfo.players = lobby.lobbyInfo.players.filter(
             (player) => player?.id !== socket?.id
           );
 
-          if (lobby.players.length <= 1) {
+          if (lobby.lobbyInfo.players.length <= 1) {
             //you shouldn't be able to play in 1 player
-            socket.to(lobbyIdStore).emit("delete lobby");
-            io.socketsLeave(lobbyIdStore);
+            socket.to(lobbyId).emit("delete lobby");
+            io.socketsLeave(lobbyId);
           } else {
             if (lobby.playerOnTurn > lobby.players.length - 1) {
               lobby.playerOnTurn = 0;
-              socket.to(lobbyIdStore).emit("next player", 0);
+              socket.to(lobbyId).emit("next player", 0);
             }
 
-            socket.to(lobbyIdStore).emit("player left game", lobby.players);
+            socket.to(lobbyId).emit("player left game", lobby.players);
           }
         }
       });
+
+      function joinGame(lobbyId, username) {
+        lobbies[lobbyId].lobbyInfo["players"].push({
+          id: socket.id,
+          name: username,
+          ready: false,
+          stats: {
+            pairsFound: 0,
+            mostInRow: 0,
+            currMostInRow: 0,
+          },
+        });
+
+        socket.join(lobbyId);
+      }
+    
     });
   },
 };
+
+function createCards(imgUrls) {
+  const cards = [];
+
+  for (let i = 0; i < imgUrls.length; i++) {
+    cards.push(
+      //we have to create pairs of cards - that means 2 cards per 1 img
+      {
+        cardId: i * 2,
+        groupId: i,
+        imgUrl: imgUrls[i],
+      },
+      {
+        cardId: i * 2 + 1,
+        groupId: i,
+        imgUrl: imgUrls[i],
+      }
+    );
+  }
+
+  return cards;
+}
 
 export default defineConfig({
   plugins: [sveltekit(), webSocketServer],
