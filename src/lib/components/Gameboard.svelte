@@ -49,6 +49,7 @@
   
   socket?.on("next player", nextPlayer => {
     playerOnTurn = nextPlayer;
+    lobbyInfo = lobbyInfo;
   });
 
   let flippedCards = [];

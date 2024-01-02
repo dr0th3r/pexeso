@@ -66,6 +66,9 @@ const webSocketServer = {
 
       endGame() {
         this.in().emit("show stats", this.lobbyInfo.players);
+
+        this.matchedCards = [];
+        this.flippedCards = [];
       }
     }
     
