@@ -57,11 +57,18 @@
       if (merge_packs) {
         newData = {
           ...newData,
-          packs: $userData.packs.filter(pack => defaultPacks.some(defaultPacks => defaultPacks?.id !== pack?.id)),
+          packs: $userData.packs.filter((pack) =>
+            defaultPacks.some((defaultPacks) => defaultPacks?.id !== pack?.id)
+          ),
         };
       }
 
-      authHandlers[signIn ? "signIn" : "signUp"](email, password, newData, $userData.displayName);
+      authHandlers[signIn ? "signIn" : "signUp"](
+        email,
+        password,
+        newData,
+        $userData.displayName
+      );
     }
   }
 </script>
@@ -147,6 +154,22 @@
     background-color: transparent;
     color: #f0f0f0;
     width: 100%;
+  }
+
+  label {
+    display: flex;
+    align-self: flex-start;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    color: #f0f0f0;
+    cursor: pointer;
+  }
+
+  label input {
+    width: 1rem;
+    border: 1px solid var(--primary);
+    cursor: pointer;
   }
 
   button {
