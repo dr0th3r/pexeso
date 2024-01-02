@@ -63,6 +63,10 @@ const webSocketServer = {
 
         this.resetFlippedCards();
       }
+
+      endGame() {
+        this.in().emit("show stats", this.lobbyInfo.players);
+      }
     }
     
     const lobbies = {};
@@ -142,6 +146,9 @@ const webSocketServer = {
         if(lobby.flippedCards.length == 2) {
           if(!lobby.flippedCards.find(e => e.groupId != card.groupId)) {
             lobby.cardMatch(socket.id);
+            if(lobby.matchedCards.length == lobby.cards.length) {
+              lobby.endGame();
+            }
             return;
           }
 
