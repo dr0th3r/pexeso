@@ -19,31 +19,36 @@
     ? lobbyInfo?.pack
     : $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
-  let playerOnTurn = null;
+  let playerOnTurn = 0;
 
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
-  $: onTurn = checkIfOnTurn(players, lobbyInfo?.playerOnTurn, socket?.id); //am i on turn
 
-  console.log(onTurn);
-
-  socket?.on("flip card", (newFlippedCards) => {
-    flippedCards = newFlippedCards;
+  socket?.on("flip card", card => {
+    console.log(card);
+    flippedCards.push(card);
+    flippedCards = flippedCards;
   });
 
   socket?.on("card match", (newMatchedPairs) => {
-    matchedPairs = newMatchedPairs;
+    matchedPairs.push(newMatchedPairs[0]);
+    matchedPairs.push(newMatchedPairs[1]);
+    matchedPairs = matchedPairs;
+  });
+
+  socket?.on("reset flipped cards", () => {
+    setTimeout(() => {
+      flippedCards = []; 
+    }, 1000);
   });
 
   socket?.on("player left game", (remainingPlayers) => {
-    console.log(lobbyInfo);
     lobbyInfo.players = remainingPlayers;
     lobbyInfo = lobbyInfo;
-    console.log(lobbyInfo);
   });
   
   socket?.on("next player", nextPlayer => {
-    lobbyInfo.playerOnTurn = nextPlayer;
+    playerOnTurn = nextPlayer;
   });
 
   let flippedCards = [];
@@ -61,7 +66,7 @@
   }
 
   function checkIfOnTurn(id) {
-    return playerOnTurn == id;
+    return lobbyInfo.players[playerOnTurn].id == id;
   }
 
   startGame();
@@ -85,14 +90,15 @@
   calc(75vh / {columnCount})))"
 >
   {#each Array(lobbyInfo?.pack.length * 2) as _, index (index)}
-    {@const isFound = matchedPairs.includes(index)}
-    {@const card = flippedCards.find(card => card.cardId == index) || null}
-    {@const isFlipped = isFound || card != null}
+    {@const matchedCard = matchedPairs.find(e => e.cardId == index) || null}
+    {@const flippedCard = flippedCards.find(e => e.cardId == index) || null}
+    {@const isFlipped = matchedCard != null || flippedCard != null}
+    {@const card = matchedCard == null ? flippedCard : matchedCard}
     <button
       class:flipped={isFlipped}
       on:click={() => flipCard(index)}
     >
-      <div class="img-container" class:found={isFound}>
+      <div class="img-container" class:found={matchedCard != null}>
         <img
           src={isFlipped && card != null ? card.imgUrl : "./never_gonna.jpg"}
           alt="card"
