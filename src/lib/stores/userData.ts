@@ -2,40 +2,7 @@ import { writable } from "svelte/store";
 
 import defaultPacks from "../defaultPacks";
 
-interface Pack {
-  id: string | number;
-  title: string;
-  imgUrls: string[];
-  imgRefPaths?: string[];
-}
-
-interface UserData {
-  displayName: string;
-  leastCardsFlipped: number;
-  currCardsFlipped: number;
-  gamesPlayed: number;
-  gamesWon: number;
-  mostFoundInRow: number;
-  currMostFoundInRow: number;
-  packs: Pack[];
-  chosenPack: Pack;
-  modifiedPack: Pack | null;
-}
-
-interface DBUserData {
-  displayName: string;
-  chosenPackId: number;
-  gamesPlayed: number;
-  leastCardsFlipped: number;
-  mostFoundInRow: number;
-  packs: {
-    [key: string]: {
-      title: string;
-      imgRefPaths: string[];
-      imgUrls: string[];
-    };
-  };
-}
+import { Pack, UserData, DBUserData } from "../types";
 
 export function createUserTemplate(
   displayName = `anonymous${Math.floor(Math.random() * 1000)}`

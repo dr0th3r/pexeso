@@ -25,37 +25,7 @@ export const authStore = writable({
   error: null,
 });
 
-interface NewFile {
-  url: string;
-  path: string;
-}
-
-interface Pack {
-  id: number;
-  title: string;
-  imgRefPaths: string[];
-  imgUrls: string[];
-}
-
-interface DBPack {
-  title: string;
-  imgRefPaths: string[];
-  imgUrls: string[];
-}
-
-interface DBPacks {
-  [key: string]: DBPack;
-}
-
-interface SignData {
-  displayName: string;
-  chosenPackId: number;
-  gamesPlayed: number;
-  leastCardsFlipped: number;
-  mostFoundInRow: number;
-  packs: Pack[];
-}
-
+import { NewFile, Pack, DBPacks, SignData} from "../types";
 
 export const authHandlers = {
   signIn: async (email: string, password: string, newData: SignData, oldDisplayName: string) => { //oldDisplayName = anonymouse<some-id>
@@ -278,7 +248,12 @@ async function moveFiles(srcRef: StorageReference, destRef: StorageReference, up
 
 async function movePacks(packs: Pack[], oldId: string, newId: string): Promise<DBPacks> { //oldId = anonymouse<some-id>; newId = user.uid
   
-  const imgsCount = packs.reduce((acc, curr) => acc + curr.imgRefPaths.length, 0);
+  const imgsCount = packs.reduce((acc, curr) => {
+      if (!curr?.imgRefPaths) return acc;
+
+      return acc + curr.imgRefPaths.length
+    }, 0
+  );
   let uploadedCount = 0;
   
   try {

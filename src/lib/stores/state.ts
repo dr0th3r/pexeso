@@ -2,10 +2,7 @@ import { writable } from "svelte/store";
 
 import { authStore } from "./auth";
 
-interface Event { 
-  type: string;
-  user?: any;
-}
+import { Event } from "../types";
 
 function useMachine(machine: (state: string, event: Event) => string, initialState: string) {
   const state = writable(initialState);

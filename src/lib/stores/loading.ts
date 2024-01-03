@@ -20,7 +20,7 @@ function createLoadingStore() {
                 message: message,
             });
         },
-        updateProgress: (progress) => {
+        updateProgress: (progress: number) => {
             update((curr) => ({
                 ...curr,
                 progress: progress * 100,
