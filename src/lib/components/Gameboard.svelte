@@ -25,7 +25,9 @@
   $: players = lobbyInfo?.players || [];
 
   socket?.on("flip card", card => {
-    console.log(card);
+    if(flippedCards.length >= 2)
+      return;
+
     flippedCards.push(card);
     flippedCards = flippedCards;
   });
@@ -37,9 +39,7 @@
   });
 
   socket?.on("reset flipped cards", () => {
-    setTimeout(() => {
-      flippedCards = []; 
-    }, 1000);
+    flippedCards = []; 
   });
 
   socket?.on("player left game", (remainingPlayers) => {

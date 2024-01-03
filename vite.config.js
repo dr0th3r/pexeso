@@ -18,9 +18,8 @@ const webSocketServer = {
       matchedCards = [];
       cards;
 
-      constructor(lobbyInfo, cards) {
+      constructor(lobbyInfo) {
         this.lobbyInfo = lobbyInfo;
-        this.cards = cards;
       }
 
       in() {
@@ -41,8 +40,10 @@ const webSocketServer = {
       }
 
       resetFlippedCards() {
-        this.in().emit("reset flipped cards");
-        this.flippedCards = [];
+        setTimeout(() => {
+          this.in().emit("reset flipped cards");
+          this.flippedCards = [];
+        }, 1000);
       }
 
       cardMatch(playerId) {     
@@ -70,6 +71,10 @@ const webSocketServer = {
         this.matchedCards = [];
         this.flippedCards = [];
       }
+
+      generateCards() {
+        this.cards = createCards(this.lobbyInfo.pack);
+      }
     }
     
     const lobbies = {};
@@ -91,7 +96,7 @@ const webSocketServer = {
           players: [],
         };
 
-        lobbies[lobbyId] = new Lobby(lobbyInfo, createCards(pack));
+        lobbies[lobbyId] = new Lobby(lobbyInfo);
         lobby = lobbies[lobbyId];
 
         joinGame(lobby, username);
@@ -126,8 +131,16 @@ const webSocketServer = {
           players.forEach(player => player.ready = false);
           lobbyInfo.playerOnTurn = 0;
           lobby.running = true;
+          lobby.generateCards();
           lobby.in().emit("start game", lobbyInfo);
         }
+      });
+
+      socket.on("chat", message => {
+        if(lobby == null)
+          return;
+
+        lobby.in().emit("chat", message);
       });
 
       socket.on("flip card", index => {
@@ -142,7 +155,7 @@ const webSocketServer = {
         || lobby.matchedCards.find(e => e.cardId == index))
           return;
 
-        const card = lobby.cards[index];
+        const card = lobby.cards.find(e => e.cardId == index);
         lobby.flippedCards.push(card);
         lobby.in().emit("flip card", card);
 
@@ -244,17 +257,19 @@ const webSocketServer = {
 
 function createCards(imgUrls) {
   const cards = [];
+  const ids = Array.from(Array(imgUrls.length * 2),(x,i)=>i);
+  ids.sort(() => Math.random() - 0.5);
 
   for (let i = 0; i < imgUrls.length; i++) {
     cards.push(
       //we have to create pairs of cards - that means 2 cards per 1 img
       {
-        cardId: i * 2,
+        cardId: ids[i * 2],
         groupId: i,
         imgUrl: imgUrls[i],
       },
       {
-        cardId: i * 2 + 1,
+        cardId: ids[i * 2 + 1],
         groupId: i,
         imgUrl: imgUrls[i],
       }
