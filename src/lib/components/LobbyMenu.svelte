@@ -12,13 +12,13 @@
   
   export let socket;
 
-  socket.on("create lobby", (data) => {
+  socket.on("lobby info", (data) => {
     lobbyInfo = data;
     localState = "inLobby";
   });
 
-  socket.on("join lobby", (data) => {
-    lobbyInfo = data;
+  socket.on("join lobby", (players) => {
+    lobbyInfo.players = players;
     localState = "inLobby";
   });
 
