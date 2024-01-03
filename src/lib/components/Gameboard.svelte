@@ -24,10 +24,8 @@
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
 
-  socket?.on("flip card", card => {
-    if(flippedCards.length >= 2)
-      return;
-
+  socket?.on("flip card", (card) => {
+    console.log(card);
     flippedCards.push(card);
     flippedCards = flippedCards;
   });
@@ -39,15 +37,17 @@
   });
 
   socket?.on("reset flipped cards", () => {
-    flippedCards = []; 
+    setTimeout(() => {
+      flippedCards = [];
+    }, 1000);
   });
 
   socket?.on("player left game", (remainingPlayers) => {
     lobbyInfo.players = remainingPlayers;
     lobbyInfo = lobbyInfo;
   });
-  
-  socket?.on("next player", nextPlayer => {
+
+  socket?.on("next player", (nextPlayer) => {
     playerOnTurn = nextPlayer;
     lobbyInfo = lobbyInfo;
   });
@@ -77,9 +77,8 @@
   <div class="player-list">
     {#each players as { name, id } (id)}
       <span
-        style:border={checkIfOnTurn(id)
-          ? "1px solid var(--primary)"
-          : "none"}>{name}</span
+        style:border={checkIfOnTurn(id) ? "1px solid var(--primary)" : "none"}
+        >{name}</span
       >
     {/each}
   </div>
@@ -90,15 +89,12 @@
   style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}),
   calc(75vh / {columnCount})))"
 >
-  {#each Array(lobbyInfo?.pack.length * 2) as _, index (index)}
-    {@const matchedCard = matchedPairs.find(e => e.cardId == index) || null}
-    {@const flippedCard = flippedCards.find(e => e.cardId == index) || null}
+  {#each Array(lobbyInfo?.pack?.length || 0 * 2) as _, index (index)}
+    {@const matchedCard = matchedPairs.find((e) => e.cardId == index) || null}
+    {@const flippedCard = flippedCards.find((e) => e.cardId == index) || null}
     {@const isFlipped = matchedCard != null || flippedCard != null}
     {@const card = matchedCard == null ? flippedCard : matchedCard}
-    <button
-      class:flipped={isFlipped}
-      on:click={() => flipCard(index)}
-    >
+    <button class:flipped={isFlipped} on:click={() => flipCard(index)}>
       <div class="img-container" class:found={matchedCard != null}>
         <img
           src={isFlipped && card != null ? card.imgUrl : "./never_gonna.jpg"}

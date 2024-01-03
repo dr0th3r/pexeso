@@ -17,14 +17,48 @@ import stateMachine from "./state.js";
 import { listAll, ref, getBlob, uploadBytes, deleteObject, getDownloadURL } from "firebase/storage";
 import { loadingStore } from "./loading.js";
 
+import { StorageReference } from "firebase/storage";
+
 export const authStore = writable({
   user: null,
   loading: false,
   error: null,
 });
 
+interface NewFile {
+  url: string;
+  path: string;
+}
+
+interface Pack {
+  id: number;
+  title: string;
+  imgRefPaths: string[];
+  imgUrls: string[];
+}
+
+interface DBPack {
+  title: string;
+  imgRefPaths: string[];
+  imgUrls: string[];
+}
+
+interface DBPacks {
+  [key: string]: DBPack;
+}
+
+interface SignData {
+  displayName: string;
+  chosenPackId: number;
+  gamesPlayed: number;
+  leastCardsFlipped: number;
+  mostFoundInRow: number;
+  packs: Pack[];
+}
+
+
 export const authHandlers = {
-  signIn: async (email, password, newData, oldDisplayName) => { //oldDisplayName = anonymouse<some-id>
+  signIn: async (email: string, password: string, newData: SignData, oldDisplayName: string) => { //oldDisplayName = anonymouse<some-id>
     try {
       authStore.set({
         user: null,
@@ -40,8 +74,10 @@ export const authHandlers = {
 
       console.log(newData.packs);
 
+      let newPacks: DBPacks | {} = {}
+
       if (newData?.packs?.length > 0) {
-        newData.packs = await movePacks(newData.packs, oldDisplayName, user.uid);
+        newPacks = await movePacks(newData.packs, oldDisplayName, user.uid);
       }
 
       //in this case newData.displayNamef = anonymous, that's why it's the second option
@@ -59,8 +95,14 @@ export const authHandlers = {
         await setDoc(doc(db, "users", user.uid), {
           ...newData,
           displayName: name,
+          packs: newPacks,
         });
-        userData.setFromDBData(newData);
+
+        userData.setFromDBData({
+          ...newData, 
+          displayName: name, 
+          packs: newPacks}
+        );
       } else if (newData) {
         const docData = docSnap.data();
         let updatedData = {
@@ -74,14 +116,15 @@ export const authHandlers = {
             docData.mostFoundInRow,
             newData.mostFoundInRow
           ),
+          chosenPackId: newData.chosenPackId,
           packs: {
             ...docData.packs,
-            ...newData.packs,
+            ...newPacks,
           }
         };
         await setDoc(doc(db, "users", user.uid), updatedData);
 
-        userData.setFromDBData(updatedData);
+        userData.setFromDBData(updatedData)
       }
 
       loadingStore.stopLoading();
@@ -96,7 +139,7 @@ export const authHandlers = {
       });
     }
   },
-  signUp: async (email, password, initialData, oldDisplayName) => { //oldDisplayName = anonymouse<some-id>
+  signUp: async (email: string, password: string, initialData: SignData, oldDisplayName: string) => { //oldDisplayName = anonymouse<some-id>
     console.log(initialData);
 
     try {
@@ -116,21 +159,29 @@ export const authHandlers = {
 
       loadingStore.stopLoading();
 
-      initialData?.packs?.filter(pack => pack.length > 0);
+      initialData?.packs?.filter(pack => pack.imgUrls.length > 0);
+
+      let newPacks: DBPacks | {} = {}
 
       if (initialData?.packs?.length > 0) {
-        initialData.packs = await movePacks(initialData.packs, oldDisplayName, user.uid);
+        newPacks = await movePacks(initialData.packs, oldDisplayName, user.uid);
       }
 
       loadingStore.startLoading("Creating user profile...");
 
-      await setDoc(doc(db, "users", user.uid), initialData);
+      await setDoc(doc(db, "users", user.uid), {
+        ...initialData,
+        packs: newPacks,
+      });
 
       loadingStore.stopLoading();
 
       console.log(initialData);
 
-      userData.setFromDBData(initialData);
+      userData.setFromDBData({
+        ...initialData, 
+        packs: newPacks
+      });
 
       updateProfile(user, {
         displayName: initialData?.displayName,
@@ -157,7 +208,7 @@ export const authHandlers = {
       });
     }
   },
-  resetPassword: async (email) => {
+  resetPassword: async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
@@ -168,9 +219,12 @@ export const authHandlers = {
       });
     }
   },
-  updateEmail: async (email) => {
+  updateEmail: async (email: string) => {
     try {
-      await updateEmail(auth, email);
+      if (!!auth.currentUser) 
+        await updateEmail(auth.currentUser, email);
+      else
+        throw new Error("User not logged in");
     } catch (error) {
       authStore.set({
         user: null,
@@ -179,9 +233,10 @@ export const authHandlers = {
       });
     }
   },
-  updatePassword: async (password) => {
+  updatePassword: async (password: string) => {
     try {
-      await updatePassword(auth, password);
+      if (!!auth.currentUser)
+        await updatePassword(auth.currentUser, password);
     } catch (error) {
       authStore.set({
         user: null,
@@ -192,7 +247,7 @@ export const authHandlers = {
   },
 };
 
-async function moveFiles(srcRef, destRef, updateProgress) {
+async function moveFiles(srcRef: StorageReference, destRef: StorageReference, updateProgress: () => void): Promise<NewFile[]> {
   try {
     const files = await listAll(srcRef);
   
@@ -216,13 +271,12 @@ async function moveFiles(srcRef, destRef, updateProgress) {
         }
       })
     }))
-
   } catch (error) {
     throw new Error(error);
   }
 }
 
-async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; newId = user.uid
+async function movePacks(packs: Pack[], oldId: string, newId: string): Promise<DBPacks> { //oldId = anonymouse<some-id>; newId = user.uid
   
   const imgsCount = packs.reduce((acc, curr) => acc + curr.imgRefPaths.length, 0);
   let uploadedCount = 0;
@@ -240,6 +294,8 @@ async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; n
             loadingStore.updateProgress(++uploadedCount / imgsCount);
           });
 
+
+
           resolve({
             ...pack,
             imgRefPaths: newData.map(file => file.path),
@@ -249,11 +305,11 @@ async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; n
           reject(error);
         }
       })
-    }))
+    })) as Pack[];
 
     loadingStore.stopLoading();
 
-    return newPacksData.reduce((acc, curr) => {
+    return newPacksData.reduce((acc: DBPacks | {}, curr: Pack) => {
       acc[curr.id] = {
         title: curr.title,
         imgRefPaths: curr.imgRefPaths,
@@ -262,7 +318,7 @@ async function movePacks(packs, oldId, newId) { //oldId = anonymouse<some-id>; n
       return acc;
     }, {});
   } catch (error) {
-    console.error(error)
+    console.error(error);
+    return {}
   }
-
 }
