@@ -1,7 +1,7 @@
 <script>
   import { fade, fly } from "svelte/transition";
 
-  import stateMachine from "$lib/stores/state.js";
+  import stateMachine from "$lib/stores/state";
   const { state } = stateMachine;
 
   import SignIn from "../lib/components/SignIn.svelte";
@@ -11,6 +11,8 @@
   import CardMenu from "../lib/components/CardMenu.svelte";
   import LobbyMenu from "../lib/components/LobbyMenu.svelte";
 
+  import { userData } from "$lib/stores/userData";
+  import { authStore } from "$lib/stores/auth";
   import { io } from "socket.io-client";
 
   const socket = io();
@@ -42,10 +44,9 @@
   socket.on("you left lobby", () => {
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
-  });
+  });  
 
   let lobbyInfo = null;
-
 
   let transitionComplete = false;
 
@@ -63,10 +64,10 @@
   {#if $state === "inMainMenu"}
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
-    <Gameboard />
+    <Gameboard 
+    {socket}/>
   {:else if $state === "playingMultiplayer" && transitionComplete}
     <Gameboard
-
       multiplayer={true}
       {socket}
       {lobbyInfo}

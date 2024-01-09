@@ -1,7 +1,7 @@
 <script>
-  import stateMachine from "$lib/stores/state.js";
+  import stateMachine from "$lib/stores/state";
 
-  import { userData } from "$lib/stores/userData.js";
+  import { userData } from "$lib/stores/userData";
 
   export let stats; //array of players
   export let multiplayer = false;

@@ -3,7 +3,6 @@ import { defineConfig } from "vite";
 
 import { Server } from "socket.io";
 
-
 const webSocketServer = {
   name: "webSocketServer",
   configureServer(server) {
@@ -87,24 +86,73 @@ const webSocketServer = {
       generateCards() {
         this.cards = createCards(this.pack);
       }
+
+      joinGame(socket, username) {
+        this.players.push({
+          id: socket.id,
+          name: username,
+          ready: false,
+          stats: {
+            leastCardsFlipped: 0,
+            currCardsFlipped: 0,
+            gamesPlayed: 0,
+            gamesWon: 0,
+            mostFoundInRow: 0,
+            currMostFoundInRow: 0,
+          },
+        });
+
+        socket.join(this.id);
+      }
+
+      startGame() {
+        this.players.forEach(player => player.ready = false);
+        this.playerOnTurn = 0;
+        this.running = true;
+        this.generateCards();
+        this.in().emit("start game", this.serialize());
+      }
+
+      leaveGame(socket, autoLobbyDelete) {
+        this.players = this.players.filter(
+          (player) => player.id !== socket.id
+        ) || [];
+
+        this.in().emit("player left lobby", this.players);
+
+        io.in(socket.id).emit("you left lobby");
+
+        if (this.players.length <= 0 || (this.players.length <= 1 && autoLobbyDelete)) {
+          socket.to(this.id).emit("delete lobby");
+          io.socketsLeave(this.id);
+          lobbies = lobbies.filter(e => e != this)
+        } else {
+          socket.leave(this.id);
+        }
+      }
     }
     
-    const lobbies = {};
+    let lobbies = {};
 
     io.on("connection", (socket) => {
       let lobby = null;
 
-      socket.on("create lobby", (username, pack) => {
+      socket.on("create lobby", (username, singleplayer, pack) => {
         if(lobby != null)
           return;
-      
+    
         let lobbyId = `${socket.id}_lobby`;
 
         lobbies[lobbyId] = new Lobby(lobbyId, pack);
         lobby = lobbies[lobbyId];
 
-        joinGame(lobby, username);
+        lobby.joinGame(socket, username);
         socket.emit("lobby info", lobby.serialize());
+
+        if(singleplayer) {
+          lobby.startGame();
+          socket.emit("start game", lobby.serialize());
+        }
       });
 
       socket.on("join lobby", (username, lobbyId) => {
@@ -119,7 +167,7 @@ const webSocketServer = {
         } else {
           lobby = lobbies[lobbyId];
           
-          joinGame(lobby, username);
+          lobby.joinGame(socket, username);
           socket.emit("lobby info", lobby.serialize());
           lobby.in().emit("join lobby", lobby.players);
         }
@@ -138,11 +186,7 @@ const webSocketServer = {
         lobby.in().emit("toggle ready", socket.id);
 
         if (!players.find(player => !player.ready)) {
-          players.forEach(player => player.ready = false);
-          lobby.playerOnTurn = 0;
-          lobby.running = true;
-          lobby.generateCards();
-          lobby.in().emit("start game", lobby.serialize());
+          lobby.startGame();
         }
       });
 
@@ -158,6 +202,9 @@ const webSocketServer = {
           return;
 
         if(lobby.players[lobby.playerOnTurn]?.id != socket.id)
+          return;
+
+        if(lobby.flippedCards.length >= 2)
           return;
 
         // Cards already visible
@@ -183,45 +230,11 @@ const webSocketServer = {
         }
       });
 
-      socket.on("show stats", () => {  
-        if(lobby == null)
-          return;
-      
-        //we need to update stats first
-        const playerStats = lobby.players.find(
-          (player) => player.id === socket.id
-        )?.stats;
-
-        playerStats.pairsFound = playerStats.pairsFound + 1 || 1;
-        playerStats.currMostInRow = playerStats.currMostInRow + 1 || 1;
-
-        playerStats.mostInRow =
-          playerStats.currMostInRow || playerStats.mostInRow || 1;
-
-        //and then display them
-        lobby.in().emit("show stats", lobby.players);
-      });
-
       socket.on("leave lobby", (autoLobbyDelete = false) => {
         if(lobby == null)
           return;
 
-        const players = lobby?.players?.filter(
-          (player) => player.id !== socket.id
-        ) || [];
-
-        lobby.players = players;
-
-        lobby.in().emit("player left lobby", players);
-
-        io.in(socket.id).emit("you left lobby");
-
-        if (players?.length <= 0 || (players?.length <= 1 && autoLobbyDelete)) {
-          socket.to(lobby.id).emit("delete lobby");
-          io.socketsLeave(lobby.id);
-        } else {
-          socket.leave(lobby.id);
-        }
+        lobby.leaveGame(socket, autoLobbyDelete);
       });
 
       socket.on("disconnect", () => {
@@ -249,22 +262,6 @@ const webSocketServer = {
           }
         }
       });
-
-      function joinGame(lobby, username) {
-        lobby.players.push({
-          id: socket.id,
-          name: username,
-          ready: false,
-          stats: {
-            pairsFound: 0,
-            mostInRow: 0,
-            currMostInRow: 0,
-          },
-        });
-
-        socket.join(lobby.id);
-      }
-    
     });
   },
 };

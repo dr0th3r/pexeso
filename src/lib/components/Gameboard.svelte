@@ -1,15 +1,8 @@
 <script>
   import { fade } from "svelte/transition";
 
-  import { userData } from "$lib/stores/userData.js";
+  import { userData } from "$lib/stores/userData";
   import defaultPacks from "../defaultPacks";
-
-  import { authStore } from "$lib/stores/auth";
-
-  import { db } from "../firebase/firebase.client";
-  import { updateDoc, doc } from "firebase/firestore";
-
-  import stateMachine from "$lib/stores/state.js";
 
   export let multiplayer = false;
   export let socket;
@@ -24,6 +17,11 @@
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
 
+  if(!multiplayer) {
+    socket?.emit("create lobby", $userData.displayName, true, imgs);
+    console.log(socket);
+  }
+
   socket?.on("flip card", (card) => {
     console.log(card);
     flippedCards.push(card);
@@ -37,9 +35,7 @@
   });
 
   socket?.on("reset flipped cards", () => {
-    setTimeout(() => {
-      flippedCards = [];
-    }, 1000);
+    flippedCards = [];
   });
 
   socket?.on("player left game", (remainingPlayers) => {
@@ -89,7 +85,7 @@
   style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}),
   calc(75vh / {columnCount})))"
 >
-  {#each Array(lobbyInfo?.pack?.length || 0 * 2) as _, index (index)}
+  {#each Array((lobbyInfo?.pack?.length || 0) * 2) as _, index (index)}
     {@const matchedCard = matchedPairs.find((e) => e.cardId == index) || null}
     {@const flippedCard = flippedCards.find((e) => e.cardId == index) || null}
     {@const isFlipped = matchedCard != null || flippedCard != null}

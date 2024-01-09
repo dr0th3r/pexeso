@@ -3,7 +3,7 @@
 
   import { fly, fade } from "svelte/transition";
 
-  import stateMachine from "$lib/stores/state.js";
+  import stateMachine from "$lib/stores/state";
 </script>
 
 <button

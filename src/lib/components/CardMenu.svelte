@@ -1,7 +1,7 @@
 <script>
   import { fade } from "svelte/transition";
 
-  import {userData} from "$lib/stores/userData.js";
+  import {userData} from "$lib/stores/userData";
 
   import Modal from "./Modal.svelte";
   import CardsOverview from "./CardMenu/CardsOverview.svelte";

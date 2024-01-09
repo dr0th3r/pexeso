@@ -1,10 +1,10 @@
 <script>
   import { onMount } from "svelte";
 
-  import { usersRef } from "$lib/firebase/firebase.client.js";
+  import { usersRef } from "$lib/firebase/firebase.client";
   import { query, orderBy, limit, getDocs } from "firebase/firestore";
 
-  import { loadingStore } from "$lib/stores/loading.js";
+  import { loadingStore } from "$lib/stores/loading";
 
   onMount(async () => {
     const snapshot = await getDocs(

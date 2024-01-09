@@ -6,7 +6,7 @@
 
   import { usersRef } from "../../firebase/firebase.client";
 
-  import stateMachine from "$lib/stores/state.js";
+  import stateMachine from "$lib/stores/state";
 
   import { storage } from "../../firebase/firebase.client";
   import { doc, getDoc, updateDoc } from "firebase/firestore";

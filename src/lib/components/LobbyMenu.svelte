@@ -60,7 +60,7 @@
       alert("Invalid pexeso pack!");
     }
 
-    socket.emit("create lobby", username, imgs);
+    socket.emit("create lobby", username, false, imgs);
   }
 
   function joinLobby() {

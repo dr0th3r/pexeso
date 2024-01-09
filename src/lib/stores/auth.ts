@@ -1,5 +1,5 @@
 import { writable } from "svelte/store";
-import { auth, storage } from "../firebase/firebase.client.js";
+import { auth, storage } from "../firebase/firebase.client";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -9,13 +9,13 @@ import {
   updatePassword,
   updateProfile,
 } from "firebase/auth";
-import { userData } from "./userData.js";
-import { db } from "../firebase/firebase.client.js";
+import { userData } from "./userData";
+import { db } from "../firebase/firebase.client";
 import { getDoc, setDoc, doc } from "firebase/firestore";
 
-import stateMachine from "./state.js";
+import stateMachine from "./state";
 import { listAll, ref, getBlob, uploadBytes, deleteObject, getDownloadURL } from "firebase/storage";
-import { loadingStore } from "./loading.js";
+import { loadingStore } from "./loading";
 
 import { StorageReference } from "firebase/storage";
 
