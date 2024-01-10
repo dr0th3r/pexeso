@@ -12,7 +12,45 @@
   import { usersRef } from "../lib/firebase/firebase.client";
 
   import { loadingStore } from "../lib/stores/loading";
+  import { io } from "socket.io-client";
 
+  const socket = io();
+
+  socket?.on("error", (err) => {
+    alert(`Error: ${err}`);
+  });
+
+  socket?.on("start game", (data) => {
+    lobbyInfo = data;
+    stateMachine.emit({ type: "startMultiplayer" });
+
+    console.log(lobbyInfo);
+  });
+
+  socket?.on("show stats", (players) => {
+    lobbyInfo.players = players;
+    lobbyInfo = lobbyInfo;
+    stateMachine.emit({ type: "showStatistics" });
+
+    console.log(lobbyInfo);
+  });
+
+  socket?.on("set stats", (stats) => {
+    $userData.leastCardsFlipped = stats.leastCardsFlipped;
+    $userData.gamesPlayed = stats.gamesPlayed;
+    $userData.mostFoundInRow = stats.mostFoundInRow;
+  });
+
+  socket.on("delete lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });
+
+  socket.on("you left lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });  
+  
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);
@@ -50,7 +88,7 @@
   });
 </script>
 
-<Header />
+<Header {socket}/>
 <div class="slot-container">
   <slot />
 </div>

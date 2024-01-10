@@ -13,44 +13,6 @@
 
   import { userData } from "$lib/stores/userData";
   import { authStore } from "$lib/stores/auth";
-  import { io } from "socket.io-client";
-
-  const socket = io();
-
-  socket?.on("error", (err) => {
-    alert(`Error: ${err}`);
-  });
-
-  socket?.on("start game", (data) => {
-    lobbyInfo = data;
-    stateMachine.emit({ type: "startMultiplayer" });
-
-    console.log(lobbyInfo);
-  });
-
-  socket?.on("show stats", (players) => {
-    lobbyInfo.players = players;
-    lobbyInfo = lobbyInfo;
-    stateMachine.emit({ type: "showStatistics" });
-
-    console.log(lobbyInfo);
-  });
-
-  socket?.on("set stats", (stats) => {
-    $userData.leastCardsFlipped = stats.leastCardsFlipped;
-    $userData.gamesPlayed = stats.gamesPlayed;
-    $userData.mostFoundInRow = stats.mostFoundInRow;
-  });
-
-  socket.on("delete lobby", () => {
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });
-
-  socket.on("you left lobby", () => {
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });  
 
   let lobbyInfo = null;
 
@@ -66,7 +28,7 @@
   }
 </script>
 
-<main class="outer">
+<main class="outer" let:socket={socket}>
   {#if $state === "inMainMenu"}
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
