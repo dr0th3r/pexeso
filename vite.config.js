@@ -64,11 +64,12 @@ const webSocketServer = {
 
         playerStats.mostInRow =
           playerStats.currMostInRow || playerStats.mostInRow || 1;
-
-        this.in().emit("card match", this.flippedCards);
-
-        this.matchedCards.push(this.flippedCards[0]);
-        this.matchedCards.push(this.flippedCards[1]); // maybe use some built-in funciton
+      
+        setTimeout(() => {
+          this.in().emit("card match", this.flippedCards);
+        }, 1000)
+  
+        this.matchedCards.push(...this.flippedCards); // maybe use some built-in funciton
 
         this.resetFlippedCards();
       }
@@ -228,12 +229,11 @@ const webSocketServer = {
         if (lobby == null) return;
 
         lobby.leaveGame(socket, autoLobbyDelete);
+        lobby = null;
       });
 
       socket.on("disconnect", () => {
         if (lobby !== null) {
-          const lobbyId = lobby.id;
-
           if (lobby.players[lobby.playerOnTurn]?.id === socket?.id) {
             //if the disconnected player was on turn, we don't want any cards to remain flipped
             lobby.in().emit("reset flipped cards");
@@ -243,15 +243,15 @@ const webSocketServer = {
 
           if (lobby.players.length <= 1) {
             //you shouldn't be able to play in 1 player
-            socket.to(lobbyId).emit("delete lobby");
-            io.socketsLeave(lobbyId);
+            lobby.in().emit("delete lobby");
+            io.socketsLeave(lobby.id);
           } else {
             if (lobby.playerOnTurn > lobby.players.length - 1) {
               lobby.playerOnTurn = 0;
-              socket.to(lobbyId).emit("next player", 0);
+              lobby.in().emit("next player", 0);
             }
 
-            socket.to(lobbyId).emit("player left game", lobby.players);
+            lobby.in().emit("player left game", lobby.players);
           }
         }
       });
