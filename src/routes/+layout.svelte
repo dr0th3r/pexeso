@@ -5,9 +5,9 @@
   import { onMount } from "svelte";
   import { auth } from "$lib/firebase/firebase.client";
   import { authStore } from "$lib/stores/auth";
-  
+
   import { getDoc, doc } from "firebase/firestore";
-  
+
   import { userData } from "$lib/stores/userData";
   import { usersRef } from "../lib/firebase/firebase.client";
 
@@ -21,8 +21,8 @@
         ...curr,
         user: user,
         loading: false,
-        error: null
-      }))
+        error: null,
+      }));
 
       if (user === null) {
         userData.createNewUser();
@@ -31,7 +31,7 @@
           loadingStore.startLoading("Loading user data...");
         }, 3000); //if it takes longer than 3s to load user data, show loading screen
 
-        const userDoc = await getDoc(doc(usersRef, user.uid))
+        const userDoc = await getDoc(doc(usersRef, user.uid));
 
         if (userDoc.exists()) {
           userData.setFromDBData(userDoc.data());
@@ -39,11 +39,11 @@
 
         clearTimeout(loadingTimeout);
 
-        if ($loadingStore.isLoading) { //if the timeout was shown, show 100% and close after .5s
+        if ($loadingStore.isLoading) {
+          //if the timeout was shown, show 100% and close after .5s
           loadingStore.stopLoading();
         }
       }
-      
 
       return unsubscribe;
     });
