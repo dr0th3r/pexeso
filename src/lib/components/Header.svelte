@@ -1,7 +1,8 @@
 <script>
   import { authStore, authHandlers } from "../stores/auth";
-
   import stateMachine from "../stores/state";
+
+  export let socket;
 </script>
 
 <nav>
@@ -10,6 +11,7 @@
       href="/"
       on:click={() => {
         stateMachine.emit({ type: "goToMainMenu" });
+        socket.emit("leave lobby");
       }}
     >
       Pexeso

@@ -36,6 +36,12 @@
     console.log(lobbyInfo);
   });
 
+  socket?.on("set stats", (stats) => {
+    $userData.leastCardsFlipped = stats.leastCardsFlipped;
+    $userData.gamesPlayed = stats.gamesPlayed;
+    $userData.mostFoundInRow = stats.mostFoundInRow;
+  });
+
   socket.on("delete lobby", () => {
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });

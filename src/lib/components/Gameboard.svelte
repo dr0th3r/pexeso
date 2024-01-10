@@ -68,6 +68,7 @@
   }
 
   startGame();
+  socket?.emit("set stats", $userData);
 </script>
 
 {#if multiplayer}

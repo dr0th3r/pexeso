@@ -75,6 +75,19 @@ const webSocketServer = {
       }
 
       endGame() {
+        this.players.forEach(e => {
+          e.stats.gamesPlayed++;
+          if(e.stats.mostFoundInRow < e.stats.mostInRow) {
+            e.stats.mostFoundInRow = e.stats.mostInRow;
+          }
+
+          if(e.stats.leastCardsFlipped < e.stats.cardsFlipped) {
+            e.stats.leastCardsFlipped = e.stats.cardsFlipped;
+          }
+
+        io.to(e.id).emit("set stats", e.stats);
+        });
+
         this.in().emit("show stats", this.players);
 
         this.matchedCards = [];
@@ -94,7 +107,6 @@ const webSocketServer = {
             leastCardsFlipped: 0,
             currCardsFlipped: 0,
             gamesPlayed: 0,
-            gamesWon: 0,
             mostFoundInRow: 0,
             currMostFoundInRow: 0,
           },
@@ -191,6 +203,19 @@ const webSocketServer = {
         if (lobby == null) return;
 
         lobby.in().emit("chat", message);
+      });
+
+      socket.on("set stats", (stats) => {
+        if(lobby == null)
+          return;
+
+        let statistics = lobby.players?.find(player => player.id === socket.id);
+
+        statistics.leastCardsFlipped = stats.leastCardsFlipped;
+        statistics.gamesPlayed = stats.gamesPlayed;
+        statistics.mostFoundInRow = stats.mostFoundInRow;
+
+        console.log(statistics);
       });
 
       socket.on("flip card", (index) => {
