@@ -15,9 +15,7 @@
 <button
   on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
   in:fly={{ y: 200, duration: 2000, delay: 100 }}
-  out:fade={{ duration: 500 }}
-  >Multiplayer</button
-
+  out:fade={{ duration: 500 }}>Multiplayer</button
 >
 <button
   in:fly={{ y: 200, duration: 2000, delay: 200 }}
@@ -38,20 +36,11 @@
     width: clamp(150px, 60vw, 250px);
     font-size: 1.5rem;
     padding: 1rem 2rem;
-    border-radius: 8px;
-    border: 1px solid var(--primary);
-    background-color: transparent;
-    color: #f0f0f0;
-    cursor: pointer;
-    transition: all 0.3s ease-out;
-  }
-
-  button:hover {
-    background-color: var(--primary);
+    border-width: 2px;
   }
 
   a {
-    color: #f0f0f0;
+    color: var(--text);
     text-decoration: none;
   }
 </style>

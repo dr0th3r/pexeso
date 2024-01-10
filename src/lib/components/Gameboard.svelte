@@ -17,7 +17,7 @@
   const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
 
-  if(!multiplayer) {
+  if (!multiplayer) {
     socket?.emit("create lobby", $userData.displayName, true, imgs);
     console.log(socket);
   }
@@ -31,6 +31,7 @@
   socket?.on("card match", (newMatchedPairs) => {
     matchedPairs.push(newMatchedPairs[0]);
     matchedPairs.push(newMatchedPairs[1]);
+    console.log(newMatchedPairs);
     matchedPairs = matchedPairs;
   });
 
@@ -109,7 +110,7 @@
     display: flex;
     justify-content: center;
     gap: 0.8rem;
-    color: #f0f0f0;
+    color: var(--text);
     width: 100%;
   }
 
@@ -133,14 +134,14 @@
   }
 
   button {
-    cursor: pointer;
-    border-radius: 12px;
-    border: 2px solid var(--primary);
-    background-color: var(--bg);
+    border-width: 2px;
     rotate: y 0deg;
     transform-style: preserve-3d;
-    transition: all 0.3s ease-out;
     aspect-ratio: 1 / 1;
+  }
+
+  button:hover {
+    background-color: transparent;
   }
 
   .flipped {

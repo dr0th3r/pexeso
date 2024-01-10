@@ -146,20 +146,25 @@
       try {
         new Compressor(img, {
           ...compressionOptions,
-          success: async(compressedImg) => {
+          success: async (compressedImg) => {
             try {
-              const snapshot = await uploadBytes(ref(packRef, img.name), compressedImg);
+              const snapshot = await uploadBytes(
+                ref(packRef, img.name),
+                compressedImg
+              );
               updateProgress();
               resolve(snapshot);
             } catch (error) {
               reject(new Error(error));
             }
           },
-        })
+        });
       } catch (error) {
-        reject(new Error(`Error compressing image ${img.name}: ${error.message}`));
+        reject(
+          new Error(`Error compressing image ${img.name}: ${error.message}`)
+        );
       }
-    })
+    });
   }
 
   async function uploadImgs(packId, imgs) {
@@ -169,17 +174,18 @@
         `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`
       ); //if there is no user, than the displayName is "anonymous<some-id>"
 
-
-      const imgCount = imgs.length; 
+      const imgCount = imgs.length;
       let uploadedCount = 0;
 
       loadingStore.startLoading("Uploading images...");
 
       const snapshots = await Promise.all(
-        imgs.map(img => compressAndUploadImg(img, packRef, () => {
-          loadingStore.updateProgress(++uploadedCount / imgCount);
-        })
-      ));
+        imgs.map((img) =>
+          compressAndUploadImg(img, packRef, () => {
+            loadingStore.updateProgress(++uploadedCount / imgCount);
+          })
+        )
+      );
 
       console.log(snapshots);
 
@@ -236,7 +242,7 @@
       height="1.1rem"
       viewBox="0 0 24 24"
       ><path
-        fill="#f0f0f0"
+        fill="var(--text)"
         d="M20 6.91L17.09 4L12 9.09L6.91 4L4 6.91L9.09 12L4 17.09L6.91 20L12 14.91L17.09 20L20 17.09L14.91 12z"
       /></svg
     ></button
@@ -270,7 +276,7 @@
           height="1.1rem"
           viewBox="0 0 1024 1024"
           ><path
-            fill="#f0f0f0"
+            fill="var(--text)"
             d="M77.248 415.04a64 64 0 0 1 90.496 0l226.304 226.304L846.528 188.8a64 64 0 1 1 90.56 90.496l-543.04 543.04l-316.8-316.8a64 64 0 0 1 0-90.496"
           /></svg
         >
@@ -292,7 +298,7 @@
         height="48"
         viewBox="0 0 24 24"
         ><path
-          fill="#f0f0f0"
+          fill="var(--text)"
           d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z"
         /></svg
       >
@@ -307,7 +313,7 @@
         height="48"
         viewBox="0 0 24 24"
         ><path
-          fill="#f0f0f0"
+          fill="var(--text)"
           d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z"
         /></svg
       >
@@ -326,12 +332,6 @@
   }
 
   button {
-    background-color: transparent;
-    color: #f0f0f0;
-    border: 1px solid var(--primary);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: 0.3s all ease-out;
     width: auto;
     height: auto;
     display: flex;
@@ -391,7 +391,7 @@
     outline: none;
     border-radius: 8px;
     background-color: transparent;
-    color: #f0f0f0;
+    color: var(--text);
   }
 
   label {
@@ -416,32 +416,6 @@
 
   .save-btn:hover {
     background-color: var(--success);
-  }
-
-  .tooltip {
-    visibility: hidden;
-    position: absolute;
-    background-color: black;
-    color: #f0f0f0;
-    text-align: center;
-    width: 70px;
-    border-radius: 8px;
-    padding: 5px 0;
-    z-index: 1;
-    bottom: 120%;
-    left: 50%;
-    margin-left: -35px;
-  }
-
-  .tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 8px;
-    border-style: solid;
-    border-color: black transparent transparent transparent;
   }
 
   button:hover .tooltip {

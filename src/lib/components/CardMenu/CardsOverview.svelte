@@ -44,23 +44,25 @@
     });
 
     if ($authStore?.user) {
-      getDoc(doc(usersRef, $authStore.user.uid)).then((userDoc) => {
-        const packs = userDoc.data().packs;
+      getDoc(doc(usersRef, $authStore.user.uid))
+        .then((userDoc) => {
+          const packs = userDoc.data().packs;
 
-        delete packs[packId];
+          delete packs[packId];
 
-        updateDoc(doc(usersRef, $authStore.user.uid), {
-          packs: packs,
-        })
-          .then(() => {
-            console.log("Document successfully updated!");
+          updateDoc(doc(usersRef, $authStore.user.uid), {
+            packs: packs,
           })
-          .catch((error) => {
-            console.error("Error updating document: ", error);
-          });
-      }).catch(error => {
-        console.error(error);
-      });
+            .then(() => {
+              console.log("Document successfully updated!");
+            })
+            .catch((error) => {
+              console.error("Error updating document: ", error);
+            });
+        })
+        .catch((error) => {
+          console.error(error);
+        });
     }
   }
 </script>
@@ -114,7 +116,7 @@
                 height="20"
                 viewBox="0 0 1024 1024"
                 ><path
-                  fill="#f0f0f0"
+                  fill="var(--text)"
                   d="M77.248 415.04a64 64 0 0 1 90.496 0l226.304 226.304L846.528 188.8a64 64 0 1 1 90.56 90.496l-543.04 543.04l-316.8-316.8a64 64 0 0 1 0-90.496"
                 /></svg
               >
@@ -134,7 +136,7 @@
                   height="20"
                   viewBox="0 0 24 24"
                   ><path
-                    fill="#f0f0f0"
+                    fill="var(--text)"
                     d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83l3.75 3.75z"
                   /></svg
                 >
@@ -152,7 +154,7 @@
                   height="20"
                   viewBox="0 0 24 24"
                   ><path
-                    fill="#f0f0f0"
+                    fill="var(--text)"
                     d="M7 21q-.825 0-1.412-.587T5 19V6H4V4h5V3h6v1h5v2h-1v13q0 .825-.587 1.413T17 21zm2-4h2V8H9zm4 0h2V8h-2z"
                   /></svg
                 >
@@ -184,14 +186,14 @@
     outline: none;
     border-radius: 8px;
     background-color: transparent;
-    color: #f0f0f0;
+    color: var(--text);
     flex: 1;
   }
 
   .home-btn {
     padding: 0.5rem;
     font-size: 1.1rem;
-    color: #f0f0f0;
+    color: var(--text);
     background-color: transparent;
     border-radius: 8px;
     border: 1px solid var(--primary);
@@ -230,7 +232,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #f0f0f0;
+    color: var(--text);
     cursor: pointer;
     background-color: transparent;
   }
@@ -271,7 +273,7 @@
 
   .back {
     rotate: y 180deg;
-    color: #f0f0f0;
+    color: var(--text);
     display: flex;
     flex-direction: column;
     justify-content: space-around;
@@ -298,7 +300,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #f0f0f0;
+    color: var(--text);
     backdrop-filter: brightness(60%);
     border-radius: 8px;
   }
@@ -313,41 +315,11 @@
   }
 
   .btns button {
-    border-radius: 8px;
-    background-color: transparent;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 0.4rem;
-    cursor: pointer;
-    transition: all 0.3s ease-out;
     position: relative;
-  }
-
-  .tooltip {
-    visibility: hidden;
-    position: absolute;
-    background-color: black;
-    color: #f0f0f0;
-    text-align: center;
-    width: 70px;
-    border-radius: 8px;
-    padding: 5px 0;
-    z-index: 1;
-    bottom: 150%;
-    left: 50%;
-    margin-left: -35px;
-  }
-
-  .tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 8px;
-    border-style: solid;
-    border-color: black transparent transparent transparent;
   }
 
   button:hover .tooltip {

@@ -152,7 +152,7 @@
     outline: none;
     border-radius: 8px;
     background-color: transparent;
-    color: #f0f0f0;
+    color: var(--text);
     width: 100%;
   }
 
@@ -162,7 +162,7 @@
     justify-content: flex-start;
     gap: 0.5rem;
     font-size: 1.1rem;
-    color: #f0f0f0;
+    color: var(--text);
     cursor: pointer;
   }
 
@@ -174,18 +174,8 @@
 
   button {
     padding: 0.5rem;
-    color: #f0f0f0;
-    background-color: transparent;
-    border-radius: 8px;
-    border: 1px solid var(--primary);
-    cursor: pointer;
     font-size: 1.1rem;
     width: 100%;
-    transition: all 0.3s ease-out;
-  }
-
-  button:hover {
-    background-color: var(--primary);
   }
 
   h2 {
@@ -194,7 +184,7 @@
 
   h2,
   span {
-    color: #f0f0f0;
+    color: var(--text);
   }
 
   a {

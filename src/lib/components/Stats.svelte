@@ -51,7 +51,9 @@
           <td>{player?.name}</td>
           <td>{player?.stats?.pairsFound}</td>
           <td>{player?.stats?.mostInRow}</td>
-          <td style:color={player?.ready ? "var(--success)" : "var(--error)"}>{player?.ready ? "Ready" : "Not Ready"}</td>
+          <td style:color={player?.ready ? "var(--success)" : "var(--error)"}
+            >{player?.ready ? "Ready" : "Not Ready"}</td
+          >
         </tr>
       {/each}
     </table>
@@ -68,7 +70,7 @@
 
 <style>
   h1 {
-    color: #f0f0f0;
+    color: var(--text);
     font-size: 2.5rem;
   }
 
@@ -78,7 +80,7 @@
 
   li {
     text-align: center;
-    color: #f0f0f0;
+    color: var(--text);
     margin-bottom: 0.4rem;
   }
 
@@ -86,18 +88,8 @@
     width: clamp(250px, 10rem, 1000px);
     font-size: 1.1rem;
     padding: 1rem 2rem;
-    border-radius: 8px;
-    border: 1px solid var(--primary);
-    background-color: transparent;
-    color: #f0f0f0;
-    cursor: pointer;
-    transition: all 0.3s ease-out;
     margin-top: 0.6rem;
     margin-left: 0.4rem;
-  }
-
-  button:hover {
-    background-color: var(--primary);
   }
 
   .btns {
@@ -115,7 +107,11 @@
 
   .table-container {
     box-sizing: border-box;
-    width: clamp(250px, 90vw, 630px); /* 600px for the table + 30 px for the padding*/
+    width: clamp(
+      250px,
+      90vw,
+      630px
+    ); /* 600px for the table + 30 px for the padding*/
     overflow-x: auto;
     padding: 15px;
     display: flex;
@@ -144,20 +140,20 @@
     th {
       font-size: 1rem;
     }
-    
+
     td {
       font-size: 0.9rem;
     }
-    
+
     .btns button {
-      padding: .5rem;
+      padding: 0.5rem;
     }
   }
 
   th,
   td {
     padding: 1rem 1.2rem;
-    color: #f0f0f0;
+    color: var(--text);
   }
 
   tr:nth-child(even) {

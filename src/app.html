@@ -25,18 +25,11 @@
 
   :root {
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
-
-/*     --primary: #B21212;
-    --secondary: #f97316;
-    --accent: #EA906C;
-    --bg: #111827;
-    --success: #22C55e;
-    --warining: #f59e0b;
-    --error: #9f1239; */
     --primary: #9f1239;
     --secondary: #f97316;
     --accent: #EA906C;
     --bg: #111827;
+    --text: #f0f0f0;
     --success: #22C55e;
     --warining: #f59e0b;
     --error: rgb(219, 21, 21);
@@ -50,4 +43,42 @@
     flex-direction: column;
   }
 
+  button {
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--primary);
+    background-color: transparent;
+    transition: all 0.3s ease-out;
+    color: var(--text);
+  }
+
+  button:hover {
+    background-color: var(--primary);
+  }
+
+  .tooltip {
+    visibility: hidden;
+    position: absolute;
+    background-color: black;
+    color: var(--text);
+    text-align: center;
+    width: 70px;
+    border-radius: 8px;
+    padding: 5px 0;
+    z-index: 1;
+    bottom: 120%;
+    left: 50%;
+    margin-left: -35px;
+  }
+
+  .tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 8px;
+    border-style: solid;
+    border-color: black transparent transparent transparent;
+  }
 </style>

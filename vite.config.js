@@ -38,16 +38,13 @@ const webSocketServer = {
       }
 
       nextPlayer() {
-        if(++this.playerOnTurn >= this.players.length)
-          this.playerOnTurn = 0;
+        if (++this.playerOnTurn >= this.players.length) this.playerOnTurn = 0;
 
         this.in().emit("next player", this.playerOnTurn);
       }
 
       removePlayer(playerId) {
-        this.players = this.players.filter(
-          player => player?.id !== playerId
-        );
+        this.players = this.players.filter((player) => player?.id !== playerId);
       }
 
       resetFlippedCards() {
@@ -57,9 +54,9 @@ const webSocketServer = {
         }, 1000);
       }
 
-      cardMatch(playerId) {     
+      cardMatch(playerId) {
         const playerStats = this.players.find(
-          player => player.id === playerId
+          (player) => player.id === playerId
         )?.stats;
 
         playerStats.pairsFound = playerStats.pairsFound + 1 || 1;
@@ -106,7 +103,7 @@ const webSocketServer = {
       }
 
       startGame() {
-        this.players.forEach(player => player.ready = false);
+        this.players.forEach((player) => (player.ready = false));
         this.playerOnTurn = 0;
         this.running = true;
         this.generateCards();
@@ -114,50 +111,50 @@ const webSocketServer = {
       }
 
       leaveGame(socket, autoLobbyDelete) {
-        this.players = this.players.filter(
-          (player) => player.id !== socket.id
-        ) || [];
+        this.players =
+          this.players.filter((player) => player.id !== socket.id) || [];
 
         this.in().emit("player left lobby", this.players);
 
         io.in(socket.id).emit("you left lobby");
 
-        if (this.players.length <= 0 || (this.players.length <= 1 && autoLobbyDelete)) {
+        if (
+          this.players.length <= 0 ||
+          (this.players.length <= 1 && autoLobbyDelete)
+        ) {
           socket.to(this.id).emit("delete lobby");
           io.socketsLeave(this.id);
-          lobbies = lobbies.filter(e => e != this)
+          delete lobbies[this.id];
         } else {
           socket.leave(this.id);
         }
       }
     }
-    
+
     let lobbies = {};
 
     io.on("connection", (socket) => {
       let lobby = null;
 
       socket.on("create lobby", (username, singleplayer, pack) => {
-        if(lobby != null)
-          return;
-    
+        if (lobby != null) return;
+
         let lobbyId = `${socket.id}_lobby`;
 
-        lobbies[lobbyId] = new Lobby(lobbyId, pack);
-        lobby = lobbies[lobbyId];
+        lobby = new Lobby(lobbyId, pack);
+        lobbies[lobbyId] = lobby;
 
         lobby.joinGame(socket, username);
         socket.emit("lobby info", lobby.serialize());
 
-        if(singleplayer) {
+        if (singleplayer) {
           lobby.startGame();
           socket.emit("start game", lobby.serialize());
         }
       });
 
       socket.on("join lobby", (username, lobbyId) => {
-        if(lobby != null)
-          return;
+        if (lobby != null) return;
 
         if (!lobbies[lobbyId]) {
           socket.emit("error", "No such lobby");
@@ -166,17 +163,16 @@ const webSocketServer = {
           socket.emit("error", "You attempted to join running lobby");
         } else {
           lobby = lobbies[lobbyId];
-          
+
           lobby.joinGame(socket, username);
           socket.emit("lobby info", lobby.serialize());
           lobby.in().emit("join lobby", lobby.players);
         }
       });
 
-      socket.on("toggle ready", () => { 
-        if(lobby == null)
-          return;
-      
+      socket.on("toggle ready", () => {
+        if (lobby == null) return;
+
         const players = lobby.players;
 
         const player = players?.find((player) => player.id === socket.id);
@@ -185,41 +181,39 @@ const webSocketServer = {
 
         lobby.in().emit("toggle ready", socket.id);
 
-        if (!players.find(player => !player.ready)) {
+        if (!players.find((player) => !player.ready)) {
           lobby.startGame();
         }
       });
 
-      socket.on("chat", message => {
-        if(lobby == null)
-          return;
+      socket.on("chat", (message) => {
+        if (lobby == null) return;
 
         lobby.in().emit("chat", message);
       });
 
-      socket.on("flip card", index => {
-        if(lobby == null)
-          return;
+      socket.on("flip card", (index) => {
+        if (lobby == null) return;
 
-        if(lobby.players[lobby.playerOnTurn]?.id != socket.id)
-          return;
+        if (lobby.players[lobby.playerOnTurn]?.id != socket.id) return;
 
-        if(lobby.flippedCards.length >= 2)
-          return;
+        if (lobby.flippedCards.length >= 2) return;
 
         // Cards already visible
-        if(lobby.flippedCards.find(e => e.cardId == index) 
-        || lobby.matchedCards.find(e => e.cardId == index))
+        if (
+          lobby.flippedCards.find((e) => e.cardId == index) ||
+          lobby.matchedCards.find((e) => e.cardId == index)
+        )
           return;
 
-        const card = lobby.cards.find(e => e.cardId == index);
+        const card = lobby.cards.find((e) => e.cardId == index);
         lobby.flippedCards.push(card);
         lobby.in().emit("flip card", card);
 
-        if(lobby.flippedCards.length == 2) {
-          if(!lobby.flippedCards.find(e => e.groupId != card.groupId)) {
+        if (lobby.flippedCards.length == 2) {
+          if (!lobby.flippedCards.find((e) => e.groupId != card.groupId)) {
             lobby.cardMatch(socket.id);
-            if(lobby.matchedCards.length == lobby.cards.length) {
+            if (lobby.matchedCards.length == lobby.cards.length) {
               lobby.endGame();
             }
             return;
@@ -231,8 +225,7 @@ const webSocketServer = {
       });
 
       socket.on("leave lobby", (autoLobbyDelete = false) => {
-        if(lobby == null)
-          return;
+        if (lobby == null) return;
 
         lobby.leaveGame(socket, autoLobbyDelete);
       });
@@ -268,7 +261,7 @@ const webSocketServer = {
 
 function createCards(imgUrls) {
   const cards = [];
-  const ids = Array.from(Array(imgUrls.length * 2),(x,i)=>i);
+  const ids = Array.from(Array(imgUrls.length * 2), (x, i) => i);
   ids.sort(() => Math.random() - 0.5);
 
   for (let i = 0; i < imgUrls.length; i++) {
