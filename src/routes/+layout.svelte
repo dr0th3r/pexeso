@@ -58,9 +58,9 @@
   });
 </script>
 
-<Header {socket} />
+<Header />
 <div class="slot-container">
-  <slot {socket} test={"1234"} />
+  <slot />
 </div>
 {#if $loadingStore.isLoading}
   <Loading />
