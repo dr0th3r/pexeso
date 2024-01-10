@@ -12,9 +12,44 @@
   import LobbyMenu from "../lib/components/LobbyMenu.svelte";
 
   import { userData } from "$lib/stores/userData";
-  import { authStore } from "$lib/stores/auth";
+  import { socketStore } from "$lib/stores/socket";
 
   let lobbyInfo = null;
+
+  $socketStore?.on("error", (err) => {
+    alert(`Error: ${err}`);
+  });
+
+  $socketStore?.on("start game", (data) => {
+    lobbyInfo = data;
+    stateMachine.emit({ type: "startMultiplayer" });
+
+    console.log(lobbyInfo);
+  });
+
+  $socketStore?.on("show stats", (players) => {
+    lobbyInfo.players = players;
+    lobbyInfo = lobbyInfo;
+    stateMachine.emit({ type: "showStatistics" });
+
+    console.log(lobbyInfo);
+  });
+
+  $socketStore?.on("set stats", (stats) => {
+    $userData.leastCardsFlipped = stats.leastCardsFlipped;
+    $userData.gamesPlayed = stats.gamesPlayed;
+    $userData.mostFoundInRow = stats.mostFoundInRow;
+  });
+
+  $socketStore.on("delete lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });
+
+  $socketStore.on("you left lobby", () => {
+    lobbyInfo = null;
+    stateMachine.emit({ type: "goToMainMenu" });
+  });
 
   let transitionComplete = false;
 
@@ -28,25 +63,19 @@
   }
 </script>
 
-<main class="outer" let:socket={socket}>
+<main class="outer">
   {#if $state === "inMainMenu"}
     <MainMenu />
   {:else if $state === "playingSingleplayer" && transitionComplete}
-    <Gameboard 
-    {socket}/>
+    <Gameboard />
   {:else if $state === "playingMultiplayer" && transitionComplete}
-    <Gameboard
-      multiplayer={true}
-      {socket}
-      {lobbyInfo}
-    />
+    <Gameboard multiplayer={true} {lobbyInfo} />
   {:else if $state === "inLobbyMenu" && transitionComplete}
-    <LobbyMenu {socket} />
+    <LobbyMenu />
   {:else if $state === "inStatistics" && lobbyInfo}
     <Stats
       stats={lobbyInfo?.players}
       multiplayer={true}
-      {socket}
       lobbyId={lobbyInfo?.id}
     />
   {:else if $state === "inStatistics"}

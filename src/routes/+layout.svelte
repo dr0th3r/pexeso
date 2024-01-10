@@ -12,45 +12,15 @@
   import { usersRef } from "../lib/firebase/firebase.client";
 
   import { loadingStore } from "../lib/stores/loading";
+
   import { io } from "socket.io-client";
+
+  import { socketStore } from "$lib/stores/socket";
 
   const socket = io();
 
-  socket?.on("error", (err) => {
-    alert(`Error: ${err}`);
-  });
+  socketStore.set(socket);
 
-  socket?.on("start game", (data) => {
-    lobbyInfo = data;
-    stateMachine.emit({ type: "startMultiplayer" });
-
-    console.log(lobbyInfo);
-  });
-
-  socket?.on("show stats", (players) => {
-    lobbyInfo.players = players;
-    lobbyInfo = lobbyInfo;
-    stateMachine.emit({ type: "showStatistics" });
-
-    console.log(lobbyInfo);
-  });
-
-  socket?.on("set stats", (stats) => {
-    $userData.leastCardsFlipped = stats.leastCardsFlipped;
-    $userData.gamesPlayed = stats.gamesPlayed;
-    $userData.mostFoundInRow = stats.mostFoundInRow;
-  });
-
-  socket.on("delete lobby", () => {
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });
-
-  socket.on("you left lobby", () => {
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });  
-  
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);
@@ -88,9 +58,9 @@
   });
 </script>
 
-<Header {socket}/>
+<Header {socket} />
 <div class="slot-container">
-  <slot />
+  <slot {socket} test={"1234"} />
 </div>
 {#if $loadingStore.isLoading}
   <Loading />

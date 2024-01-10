@@ -8,26 +8,27 @@
   import stateMachine from "../stores/state";
   import { fade } from "svelte/transition";
 
+  import { socketStore } from "$lib/stores/socket";
+
   let imgs = $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
-  export let socket;
 
-  socket.on("lobby info", (data) => {
+  $socketStore.on("lobby info", (data) => {
     lobbyInfo = data;
     localState = "inLobby";
   });
 
-  socket.on("join lobby", (players) => {
+  $socketStore.on("join lobby", (players) => {
     lobbyInfo.players = players;
     localState = "inLobby";
   });
 
-  socket.on("player left lobby", (connectedPlayers) => {
+  $socketStore.on("player left lobby", (connectedPlayers) => {
     lobbyInfo.players = connectedPlayers;
     lobbyInfo = lobbyInfo;
   });
 
-  socket.on("toggle ready", (playerId) => {
+  $socketStore.on("toggle ready", (playerId) => {
     const player = lobbyInfo?.players.find((player) => player.id == playerId);
 
     console.log(player);
@@ -60,7 +61,7 @@
       alert("Invalid pexeso pack!");
     }
 
-    socket.emit("create lobby", username, false, imgs);
+    $socketStore.emit("create lobby", username, false, imgs);
   }
 
   function joinLobby() {
@@ -72,11 +73,11 @@
       return;
     }
 
-    socket.emit("join lobby", username, joinLobbyId);
+    $socketStore.emit("join lobby", username, joinLobbyId);
   }
 
   function leaveLobby() {
-    socket.emit("leave lobby", lobbyInfo?.id, false);
+    $socketStore.emit("leave lobby", lobbyInfo?.id, false);
     localState = "main";
   }
 </script>
@@ -169,7 +170,7 @@
     </ul>
     <button
       on:click={() => {
-        socket.emit("toggle ready", lobbyInfo?.id);
+        $socketStore.emit("toggle ready", lobbyInfo?.id);
       }}>Ready</button
     >
     <button on:click={leaveLobby}>Leave</button>

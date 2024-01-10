@@ -4,8 +4,9 @@
   import { userData } from "$lib/stores/userData";
   import defaultPacks from "../defaultPacks";
 
+  import { socketStore } from "$lib/stores/socket";
+
   export let multiplayer = false;
-  export let socket;
   export let lobbyInfo;
 
   let imgs = multiplayer
@@ -18,33 +19,32 @@
   $: players = lobbyInfo?.players || [];
 
   if (!multiplayer) {
-    socket?.emit("create lobby", $userData.displayName, true, imgs);
-    console.log(socket);
+    $socketStore?.emit("create lobby", $userData.displayName, true, imgs);
   }
 
-  socket?.on("flip card", (card) => {
+  $socketStore?.on("flip card", (card) => {
     console.log(card);
     flippedCards.push(card);
     flippedCards = flippedCards;
   });
 
-  socket?.on("card match", (newMatchedPairs) => {
+  $socketStore?.on("card match", (newMatchedPairs) => {
     matchedPairs.push(newMatchedPairs[0]);
     matchedPairs.push(newMatchedPairs[1]);
     console.log(newMatchedPairs);
     matchedPairs = matchedPairs;
   });
 
-  socket?.on("reset flipped cards", () => {
+  $socketStore?.on("reset flipped cards", () => {
     flippedCards = [];
   });
 
-  socket?.on("player left game", (remainingPlayers) => {
+  $socketStore?.on("player left game", (remainingPlayers) => {
     lobbyInfo.players = remainingPlayers;
     lobbyInfo = lobbyInfo;
   });
 
-  socket?.on("next player", (nextPlayer) => {
+  $socketStore?.on("next player", (nextPlayer) => {
     playerOnTurn = nextPlayer;
     lobbyInfo = lobbyInfo;
   });
@@ -55,7 +55,7 @@
   $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
 
   function flipCard(cardId) {
-    socket?.emit("flip card", cardId);
+    $socketStore?.emit("flip card", cardId);
   }
 
   function startGame() {
@@ -68,7 +68,7 @@
   }
 
   startGame();
-  socket?.emit("set stats", $userData);
+  $socketStore?.emit("set stats", $userData);
 </script>
 
 {#if multiplayer}

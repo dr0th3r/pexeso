@@ -3,19 +3,20 @@
 
   import { userData } from "$lib/stores/userData";
 
+  import { socketStore } from "$lib/stores/socket";
+
   export let stats; //array of players
   export let multiplayer = false;
-  export let socket;
   export let lobbyId;
 
-  socket?.on("toggle ready", (playerId) => {
+  $socketStore?.on("toggle ready", (playerId) => {
     const player = stats?.find((player) => player.id == playerId);
     player.ready = !player.ready;
 
     stats = stats; //for svelte to refresh
   });
 
-  socket?.on("player left lobby", (connectedPlayers) => {
+  $socketStore?.on("player left lobby", (connectedPlayers) => {
     stats = connectedPlayers;
   });
 </script>
@@ -59,10 +60,12 @@
     </table>
   </div>
   <div class="btns">
-    <button on:click={() => socket.emit("toggle ready", lobbyId)}>Ready</button>
+    <button on:click={() => $socketStore.emit("toggle ready", lobbyId)}
+      >Ready</button
+    >
     <button
       on:click={() => {
-        socket.emit("leave lobby", lobbyId, true);
+        $socketStore.emit("leave lobby", lobbyId, true);
       }}>Back To Menu</button
     >
   </div>
