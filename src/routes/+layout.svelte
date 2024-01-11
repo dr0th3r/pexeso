@@ -21,6 +21,7 @@
 
   socketStore.set(socket);
 
+
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);

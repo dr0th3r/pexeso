@@ -39,7 +39,7 @@ const webSocketServer = {
 
       nextPlayer() {
         if (++this.playerOnTurn >= this.players.length) this.playerOnTurn = 0;
-
+      
         this.in().emit("next player", this.playerOnTurn);
       }
 
@@ -59,17 +59,13 @@ const webSocketServer = {
           (player) => player.id === playerId
         )?.stats;
 
-        playerStats.pairsFound = playerStats.pairsFound + 1 || 1;
-        playerStats.currMostInRow = playerStats.currMostInRow + 1 || 1;
+        playerStats.pairsFound++;
 
-        playerStats.mostInRow =
-          playerStats.currMostInRow || playerStats.mostInRow || 1;
-      
         setTimeout(() => {
           this.in().emit("card match", this.flippedCards);
         }, 1000)
   
-        this.matchedCards.push(...this.flippedCards); // maybe use some built-in funciton
+        this.matchedCards.push(...this.flippedCards);
 
         this.resetFlippedCards();
       }
@@ -77,10 +73,7 @@ const webSocketServer = {
       endGame() {
         this.players.forEach(e => {
           e.stats.gamesPlayed++;
-          if(e.stats.mostFoundInRow < e.stats.mostInRow) {
-            e.stats.mostFoundInRow = e.stats.mostInRow;
-          }
-
+        
           if(e.stats.leastCardsFlipped < e.stats.cardsFlipped) {
             e.stats.leastCardsFlipped = e.stats.cardsFlipped;
           }
@@ -237,7 +230,13 @@ const webSocketServer = {
         lobby.in().emit("flip card", card);
 
         if (lobby.flippedCards.length == 2) {
+          const playerStats = lobby.players[lobby.playerOnTurn];
+
           if (!lobby.flippedCards.find((e) => e.groupId != card.groupId)) {
+            if(playerStats.mostFoundInRow < ++playerStats.currMostInRow) {
+              playerStats.mostFoundInRow = playerStats.currMostInRow;
+            }
+            
             lobby.cardMatch(socket.id);
             if (lobby.matchedCards.length == lobby.cards.length) {
               lobby.endGame();
@@ -245,6 +244,7 @@ const webSocketServer = {
             return;
           }
 
+          playerStats.currMostFoundInRow = 0;
           lobby.resetFlippedCards();
           lobby.nextPlayer();
         }

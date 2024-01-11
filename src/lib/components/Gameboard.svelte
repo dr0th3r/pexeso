@@ -61,8 +61,8 @@
   function startGame() {
     flippedCards = [];
     matchedPairs = [];
+    
   }
-
   function checkIfOnTurn(id) {
     return lobbyInfo.players[playerOnTurn].id == id;
   }

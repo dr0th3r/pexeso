@@ -13,6 +13,10 @@
 
   import { userData } from "$lib/stores/userData";
   import { socketStore } from "$lib/stores/socket";
+  import { updateDoc, doc } from "firebase/firestore";
+
+  import { authStore } from "$lib/stores/auth";
+  import { db } from "$lib/firebase/firebase.client";
 
   let lobbyInfo = null;
 
@@ -35,12 +39,6 @@
     console.log(lobbyInfo);
   });
 
-  $socketStore?.on("set stats", (stats) => {
-    $userData.leastCardsFlipped = stats.leastCardsFlipped;
-    $userData.gamesPlayed = stats.gamesPlayed;
-    $userData.mostFoundInRow = stats.mostFoundInRow;
-  });
-
   $socketStore.on("delete lobby", () => {
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
@@ -49,6 +47,18 @@
   $socketStore.on("you left lobby", () => {
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
+  });
+
+  $socketStore?.on("set stats", async (stats) => {
+    $userData.leastCardsFlipped = stats.leastCardsFlipped;
+    $userData.gamesPlayed = stats.gamesPlayed;
+    $userData.mostFoundInRow = stats.mostFoundInRow;
+    try {
+      console.log(stats);
+      await updateDoc(doc(db, "users", $authStore.user.uid), stats);
+    } catch (error) {
+      console.log(error)
+    }
   });
 
   let transitionComplete = false;
