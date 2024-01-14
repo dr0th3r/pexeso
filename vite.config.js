@@ -214,7 +214,7 @@ const webSocketServer = {
       });
 
       socket.on("set stats", (stats) => {
-        if (lobby == null) return;
+        if (lobby === null) return;
 
         let playerStats = lobby.players?.find(
           (player) => player.id === socket.id
@@ -225,7 +225,7 @@ const webSocketServer = {
         playerStats.mostFoundInRow = stats.mostFoundInRow || 0;
         playerStats.mostPairsFound = stats.mostPairsFound || 0;
 
-        console.log(playerStats);
+        lobby.in().emit("set temp stats", socket.id, playerStats);
       });
 
       socket.on("flip card", (index) => {
@@ -246,7 +246,9 @@ const webSocketServer = {
         lobby.flippedCards.push(card);
         lobby.in().emit("flip card", card);
 
-        const playerStats = lobby.players[lobby.playerOnTurn].stats;
+        const player = lobby.players[lobby.playerOnTurn];
+
+        const playerStats = player.stats;
         playerStats.currCardsFlipped++;
 
         if (lobby.flippedCards.length == 2) {
@@ -260,10 +262,14 @@ const webSocketServer = {
             if (lobby.matchedCards.length == lobby.cards.length) {
               lobby.endGame();
             }
+
+            lobby.in().emit("set temp stats", player.id, playerStats);
             return;
           }
 
           playerStats.currMostFoundInRow = 0;
+
+          lobby.in().emit("set temp stats", player.id, playerStats);
           lobby.resetFlippedCards();
           lobby.nextPlayer();
         }

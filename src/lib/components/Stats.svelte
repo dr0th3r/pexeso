@@ -120,7 +120,7 @@
     width: clamp(
       250px,
       90vw,
-      630px
+      800px
     ); /* 600px for the table + 30 px for the padding*/
     overflow-x: auto;
     padding: 15px;

@@ -15,7 +15,6 @@
 
   let playerOnTurn = 0;
 
-  const lobbyId = lobbyInfo?.id || null;
   $: players = lobbyInfo?.players || [];
 
   if (!multiplayer) {
@@ -23,7 +22,6 @@
   }
 
   $socketStore?.on("flip card", (card) => {
-    console.log(card);
     flippedCards.push(card);
     flippedCards = flippedCards;
   });
@@ -49,6 +47,24 @@
     lobbyInfo = lobbyInfo;
   });
 
+  $socketStore?.on("set temp stats", (playerId, stats) => {
+    console.log(players, playerId, stats);
+    if (players.length === 0) {
+      console.log(lobbyInfo);
+    }
+
+    const player = players.find((player) => player.id === playerId);
+    if (stats.leastCardsFlipped === null) {
+      stats.leastCardsFlipped = Infinity;
+    }
+
+    if (player) {
+      player.stats = stats;
+    }
+    //player.stats = stats;
+    lobbyInfo = lobbyInfo; //for svelte to update
+  });
+
   let flippedCards = [];
   let matchedPairs = [];
 
@@ -59,16 +75,17 @@
   }
 
   function startGame() {
+    $socketStore?.emit("set stats", $userData);
     flippedCards = [];
     matchedPairs = [];
-    
   }
   function checkIfOnTurn(id) {
     return lobbyInfo.players[playerOnTurn].id == id;
   }
 
   startGame();
-  $socketStore?.emit("set stats", $userData);
+
+  $: console.log(lobbyInfo);
 </script>
 
 {#if multiplayer}
@@ -100,6 +117,20 @@
         />
       </div>
     </button>
+  {/each}
+</div>
+<div class="stats">
+  {#each players || [] as player}
+    {@const stats = player?.stats}
+    <div>
+      <h3>{player?.name}</h3>
+      <ul>
+        <li>Games played: {stats?.gamesPlayed}</li>
+        <li>Pairs found: {stats?.pairsFound}</li>
+        <li>Most in row: {stats?.mostFoundInRow}</li>
+        <li>Cards flipped: {stats?.currCardsFlipped}</li>
+      </ul>
+    </div>
   {/each}
 </div>
 
@@ -178,5 +209,21 @@
     -webkit-user-drag: none;
     user-select: none;
     -webkit-user-select: none;
+  }
+
+  .stats {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 1rem;
+    border-left: 2px solid var(--primary);
+    border-top: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    border-radius: 8px 0 0 8px;
+    color: var(--text);
+  }
+
+  ul {
+    list-style: none;
   }
 </style>
