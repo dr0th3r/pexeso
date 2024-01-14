@@ -124,8 +124,16 @@
     <button class:flipped={isFlipped} on:click={() => flipCard(index)}>
       <div class="img-container" class:found={matchedCard != null}>
         <img
-          src={isFlipped && card != null ? card.imgUrl : "./never_gonna.jpg"}
+          src={card != null
+            ? card.imgUrl
+            : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"}
           alt="card"
+        />
+      </div>
+      <div class="logo-container">
+        <img
+          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"
+          alt="remante logo"
         />
       </div>
     </button>
@@ -227,18 +235,25 @@
     cursor: initial;
   }
 
-  .img-container {
+  .img-container,
+  .logo-container {
     position: absolute;
     inset: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     backface-visibility: hidden;
+  }
+
+  .img-container {
     rotate: y 180deg;
   }
 
+  .logo-container {
+    rotate: y 0deg;
+  }
+
   img {
-    opacity: 0; /*better performance than display: none*/
     object-fit: fill;
     overflow: hidden;
     height: 100%;
