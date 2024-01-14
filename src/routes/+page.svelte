@@ -50,14 +50,22 @@
   });
 
   $socketStore?.on("set stats", async (stats) => {
+    console.log(stats);
+
     $userData.leastCardsFlipped = stats.leastCardsFlipped;
     $userData.gamesPlayed = stats.gamesPlayed;
     $userData.mostFoundInRow = stats.mostFoundInRow;
+    $userData.mostPairsFound = stats.mostPairsFound;
     try {
       console.log(stats);
-      await updateDoc(doc(db, "users", $authStore.user.uid), stats);
+      await updateDoc(doc(db, "users", $authStore.user.uid), {
+        gamesPlayed: stats.gamesPlayed,
+        leastCardsFlipped: stats.leastCardsFlipped,
+        mostFoundInRow: stats.mostFoundInRow,
+        mostPairsFound: stats.mostPairsFound,
+      });
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   });
 

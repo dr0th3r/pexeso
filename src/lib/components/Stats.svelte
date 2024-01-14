@@ -19,6 +19,8 @@
   $socketStore?.on("player left lobby", (connectedPlayers) => {
     stats = connectedPlayers;
   });
+
+  $: console.log(stats);
 </script>
 
 {#if !multiplayer}
@@ -43,15 +45,20 @@
     <table>
       <tr>
         <th>Player</th>
+        <th>Games played</th>
         <th>Pairs found</th>
         <th>Most in row</th>
+        <th>Least cards flipped</th>
         <th>Ready to continue</th>
       </tr>
       {#each stats as player}
+        {@const stats = player?.stats}
         <tr>
           <td>{player?.name}</td>
-          <td>{player?.stats?.pairsFound}</td>
-          <td>{player?.stats?.mostInRow}</td>
+          <td>{stats?.gamesPlayed}</td>
+          <td>{stats?.pairsFound}</td>
+          <td>{stats?.mostFoundInRow}</td>
+          <td>{stats?.leastCardsFlipped}</td>
           <td style:color={player?.ready ? "var(--success)" : "var(--error)"}
             >{player?.ready ? "Ready" : "Not Ready"}</td
           >

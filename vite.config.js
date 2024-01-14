@@ -39,7 +39,7 @@ const webSocketServer = {
 
       nextPlayer() {
         if (++this.playerOnTurn >= this.players.length) this.playerOnTurn = 0;
-      
+
         this.in().emit("next player", this.playerOnTurn);
       }
 
@@ -63,22 +63,28 @@ const webSocketServer = {
 
         setTimeout(() => {
           this.in().emit("card match", this.flippedCards);
-        }, 1000)
-  
+        }, 1000);
+
         this.matchedCards.push(...this.flippedCards);
 
         this.resetFlippedCards();
       }
 
       endGame() {
-        this.players.forEach(e => {
+        this.players.forEach((e) => {
           e.stats.gamesPlayed++;
-        
-          if(e.stats.leastCardsFlipped < e.stats.cardsFlipped) {
-            e.stats.leastCardsFlipped = e.stats.cardsFlipped;
+
+          console.log(e.stats.currCardsFlipped);
+
+          if (e.stats.leastCardsFlipped > e.stats.currCardsFlipped) {
+            e.stats.leastCardsFlipped = e.stats.currCardsFlipped;
           }
 
-        io.to(e.id).emit("set stats", e.stats);
+          if (e.stats.mostPairsFound < e.stats.pairsFound) {
+            e.stats.mostPairsFound = e.stats.pairsFound;
+          }
+
+          io.to(e.id).emit("set stats", e.stats);
         });
 
         this.in().emit("show stats", this.players);
@@ -97,11 +103,13 @@ const webSocketServer = {
           name: username,
           ready: false,
           stats: {
-            leastCardsFlipped: 0,
+            leastCardsFlipped: Infinity,
             currCardsFlipped: 0,
             gamesPlayed: 0,
             mostFoundInRow: 0,
             currMostFoundInRow: 0,
+            mostPairsFound: 0,
+            pairsFound: 0,
           },
         });
 
@@ -109,7 +117,14 @@ const webSocketServer = {
       }
 
       startGame() {
-        this.players.forEach((player) => (player.ready = false));
+        this.players.forEach((player) => {
+          const playerStats = player.stats;
+
+          player.ready = false;
+          playerStats.currCardsFlipped = 0;
+          playerStats.currMostFoundInRow = 0;
+          playerStats.pairsFound = 0;
+        });
         this.playerOnTurn = 0;
         this.running = true;
         this.generateCards();
@@ -199,16 +214,18 @@ const webSocketServer = {
       });
 
       socket.on("set stats", (stats) => {
-        if(lobby == null)
-          return;
+        if (lobby == null) return;
 
-        let statistics = lobby.players?.find(player => player.id === socket.id);
+        let playerStats = lobby.players?.find(
+          (player) => player.id === socket.id
+        ).stats;
 
-        statistics.leastCardsFlipped = stats.leastCardsFlipped;
-        statistics.gamesPlayed = stats.gamesPlayed;
-        statistics.mostFoundInRow = stats.mostFoundInRow;
+        playerStats.leastCardsFlipped = stats.leastCardsFlipped || Infinity;
+        playerStats.gamesPlayed = stats.gamesPlayed || 0;
+        playerStats.mostFoundInRow = stats.mostFoundInRow || 0;
+        playerStats.mostPairsFound = stats.mostPairsFound || 0;
 
-        console.log(statistics);
+        console.log(playerStats);
       });
 
       socket.on("flip card", (index) => {
@@ -229,14 +246,16 @@ const webSocketServer = {
         lobby.flippedCards.push(card);
         lobby.in().emit("flip card", card);
 
-        if (lobby.flippedCards.length == 2) {
-          const playerStats = lobby.players[lobby.playerOnTurn];
+        const playerStats = lobby.players[lobby.playerOnTurn].stats;
+        playerStats.currCardsFlipped++;
 
+        if (lobby.flippedCards.length == 2) {
           if (!lobby.flippedCards.find((e) => e.groupId != card.groupId)) {
-            if(playerStats.mostFoundInRow < ++playerStats.currMostInRow) {
-              playerStats.mostFoundInRow = playerStats.currMostInRow;
+            console.log(playerStats);
+            if (playerStats.mostFoundInRow < ++playerStats.currMostFoundInRow) {
+              playerStats.mostFoundInRow = playerStats.currMostFoundInRow;
             }
-            
+
             lobby.cardMatch(socket.id);
             if (lobby.matchedCards.length == lobby.cards.length) {
               lobby.endGame();
