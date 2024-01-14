@@ -15,6 +15,8 @@
 
   let playerOnTurn = 0;
 
+  let messages = [];
+
   $: players = lobbyInfo?.players || [];
 
   if (!multiplayer) {
@@ -49,11 +51,11 @@
 
   $socketStore?.on("set temp stats", (playerId, stats) => {
     console.log(players, playerId, stats);
-    if (players.length === 0) {
+    if (players?.length === 0) {
       console.log(lobbyInfo);
     }
 
-    const player = players.find((player) => player.id === playerId);
+    const player = players?.find((player) => player.id === playerId);
     if (stats.leastCardsFlipped === null) {
       stats.leastCardsFlipped = Infinity;
     }
@@ -63,6 +65,16 @@
     }
     //player.stats = stats;
     lobbyInfo = lobbyInfo; //for svelte to update
+  });
+
+  $socketStore.on("chat", (playerName, msg) => {
+    messages = [
+      ...messages,
+      {
+        name: playerName,
+        msg: msg,
+      },
+    ];
   });
 
   let flippedCards = [];
@@ -123,7 +135,7 @@
   {#each players || [] as player}
     {@const stats = player?.stats}
     <div>
-      <h3>{player?.name}</h3>
+      <p style:font-weight="bold">{player?.name}</p>
       <ul>
         <li>Games played: {stats?.gamesPlayed}</li>
         <li>Pairs found: {stats?.pairsFound}</li>
@@ -133,6 +145,32 @@
     </div>
   {/each}
 </div>
+{#if lobbyInfo?.players?.length > 1}
+  <div class="chat">
+    <div class="chat-msgs">
+      {#each messages as msg}
+        <div>
+          <p style:font-weight="bold">{msg.name}</p>
+          <p>{msg.msg}</p>
+        </div>
+      {/each}
+    </div>
+    <form
+      class="chat-input"
+      on:submit|preventDefault={(e) => {
+        const msg = new FormData(e.target).get("msg");
+
+        if (!msg) return;
+
+        $socketStore.emit("chat", msg);
+        e.target.reset();
+      }}
+    >
+      <input name="msg" />
+      <button type="submit">Post</button>
+    </form>
+  </div>
+{/if}
 
 <style>
   .player-list {
@@ -225,5 +263,49 @@
 
   ul {
     list-style: none;
+  }
+
+  .chat {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 1rem;
+    border-right: 2px solid var(--primary);
+    border-top: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+  }
+
+  .chat-input {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 10vw;
+  }
+
+  .chat-input button {
+    padding: 0.5rem;
+    aspect-ratio: auto;
+  }
+
+  input {
+    padding: calc(0.5rem / 1.1);
+    box-sizing: border-box;
+    border: 2px solid var(--primary);
+    outline: none;
+    background-color: transparent;
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1.1rem;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .chat-msgs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding-bottom: 0.5rem;
+    color: var(--text);
   }
 </style>

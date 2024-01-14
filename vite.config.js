@@ -210,7 +210,9 @@ const webSocketServer = {
       socket.on("chat", (message) => {
         if (lobby == null) return;
 
-        lobby.in().emit("chat", message);
+        const playerName = lobby?.players?.find(player => player?.id === socket?.id)?.name
+
+        lobby.in().emit("chat", playerName, message);
       });
 
       socket.on("set stats", (stats) => {
