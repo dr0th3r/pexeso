@@ -11,7 +11,7 @@
       href="/"
       on:click={() => {
         stateMachine.emit({ type: "goToMainMenu" });
-        $socketStore.emit("leave lobby");
+        $socketStore.emit("leave lobby", true);
       }}
     >
       Pexeso
