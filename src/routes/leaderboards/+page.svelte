@@ -80,7 +80,9 @@
       </thead>
     </table>
   </div>
-  <button>Back To Menu</button>
+  <a href="/">
+    <button> Back to Main Menu </button>
+  </a>
 </main>
 
 <style>
@@ -153,9 +155,8 @@
     font-size: 1.1rem;
     padding: 1rem 2rem;
     border-radius: 8px;
-    border: 1px solid #9f1239;
+    border: 1px solid var(--primary);
     background-color: transparent;
-    color: #f0f0f0;
     cursor: pointer;
     transition: all 0.3s ease-out;
     margin-top: 0.6rem;
@@ -164,5 +165,10 @@
 
   button:hover {
     background-color: #9f1239;
+  }
+
+  a {
+    color: var(--text);
+    text-decoration: none;
   }
 </style>
