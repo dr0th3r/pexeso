@@ -97,7 +97,17 @@
 
   startGame();
 
-  $: console.log(lobbyInfo);
+  function scrollChat(node) {
+    function scroll() {
+      node.scroll({
+        top: node.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+    scroll();
+
+    return { update: scroll };
+  }
 </script>
 
 {#if multiplayer}
@@ -113,8 +123,8 @@
 <div
   class="board"
   in:fade={{ duration: 500 }}
-  style:grid-template-columns="repeat({columnCount}, min(calc(75vw / {columnCount}),
-  calc(75vh / {columnCount})))"
+  style:grid-template-columns="repeat({columnCount}, min(calc(60vw / {columnCount}),
+  calc(70vh / {columnCount})))"
 >
   {#each Array((lobbyInfo?.pack?.length || 0) * 2) as _, index (index)}
     {@const matchedCard = matchedPairs.find((e) => e.cardId == index) || null}
@@ -145,16 +155,16 @@
     <div>
       <p style:font-weight="bold">{player?.name}</p>
       <ul>
-        <li>Games played: {stats?.gamesPlayed}</li>
-        <li>Pairs found: {stats?.pairsFound}</li>
-        <li>Most in row: {stats?.mostFoundInRow}</li>
-        <li>Cards flipped: {stats?.currCardsFlipped}</li>
+        <li>Games played:&nbsp;{stats?.gamesPlayed}</li>
+        <li>Pairs found:&nbsp;{stats?.pairsFound}</li>
+        <li>Most in row:&nbsp;{stats?.mostFoundInRow}</li>
+        <li>Cards flipped:&nbsp;{stats?.currCardsFlipped}</li>
       </ul>
     </div>
   {/each}
 </div>
 {#if lobbyInfo?.players?.length > 1}
-  <div class="chat">
+  <div class="chat" use:scrollChat={messages}>
     <div class="chat-msgs">
       {#each messages as msg}
         <div>
@@ -274,6 +284,9 @@
     border-bottom: 2px solid var(--primary);
     border-radius: 8px 0 0 8px;
     color: var(--text);
+    max-width: 10vw;
+    max-height: 60vw;
+    overflow-y: auto;
   }
 
   ul {
@@ -289,6 +302,8 @@
     border-top: 2px solid var(--primary);
     border-bottom: 2px solid var(--primary);
     border-radius: 0 8px 8px 0;
+    max-height: 60vw;
+    overflow-y: auto;
   }
 
   .chat-input {
@@ -322,5 +337,50 @@
     gap: 0.4rem;
     padding-bottom: 0.5rem;
     color: var(--text);
+  }
+
+  @media (max-width: 800px) {
+    .stats {
+      top: -50%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      min-width: fit-content;
+      right: 50%;
+      transform: translate(50%, 50%);
+      border-right: 2px solid var(--primary);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .chat {
+      top: 105%;
+      left: 50%;
+      transform: translate(-50%, 0);
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      width: 60vw;
+      max-height: 10vh;
+    }
+
+    .chat-input {
+      flex-direction: row;
+      gap: 0.5rem;
+      max-width: 100%;
+    }
+
+    @media (max-width: 600px) {
+      .stats {
+        top: -30vh;
+        min-width: 60vw;
+        max-height: 10vh;
+        overflow-y: scroll;
+      }
+
+      .stats div {
+        flex: 1;
+        min-width: 100px;
+      }
+    }
   }
 </style>
