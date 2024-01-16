@@ -92,19 +92,15 @@
     align-items: center;
     flex-direction: column;
     background-color: #111827;
+    width: 100vw;
   }
 
   .table-container {
     box-sizing: border-box;
-    width: clamp(
-      250px,
-      90vw,
-      90vw
-    ); /* 600px for the table + 30 px for the padding*/
-    overflow-x: auto;
-    padding: 15px;
-    display: flex;
-    justify-content: center;
+    min-width: 250px;
+    max-width: 90vw;
+    max-height: 70vh;
+    overflow: auto;
   }
 
   table {
@@ -117,7 +113,7 @@
     text-align: left;
     user-select: none;
     cursor: pointer;
-    max-width: 200px;
+    min-width: 100px;
   }
 
   td {
@@ -159,16 +155,25 @@
     background-color: transparent;
     cursor: pointer;
     transition: all 0.3s ease-out;
-    margin-top: 0.6rem;
-    margin-left: 0.4rem;
+    margin-top: 0.8rem;
   }
 
   button:hover {
-    background-color: #9f1239;
+    background-color: var(--primary);
   }
 
   a {
     color: var(--text);
     text-decoration: none;
+  }
+
+  @media (max-width: 800px) {
+    th {
+      font-size: 1.1rem;
+    }
+
+    td {
+      font-size: 1rem;
+    }
   }
 </style>

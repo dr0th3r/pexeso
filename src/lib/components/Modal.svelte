@@ -24,7 +24,7 @@
   .inner {
     box-sizing: border-box;
     padding: 1rem;
-    width: clamp(200px, 60vw, 600px);
+    width: clamp(200px, 90vw, 600px);
     height: 75vh;
     background-color: #fff;
     border-radius: 8px;
