@@ -21,7 +21,6 @@
 
   socketStore.set(socket);
 
-
   onMount(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       console.log(user);
@@ -59,6 +58,12 @@
   });
 </script>
 
+<svelte:head>
+  <title>Pexeso</title>
+  <meta name="description" content="Pexeso game" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/1.png" />
+</svelte:head>
 <Header />
 <div class="slot-container">
   <slot />
