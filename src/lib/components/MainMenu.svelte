@@ -6,30 +6,18 @@
   import stateMachine from "$lib/stores/state";
 </script>
 
-<button
-  in:fly={{ y: 200, duration: 2000 }}
-  out:fade={{ duration: 500 }}
-  on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
+<button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
   >Singleplayer</button
 >
-<button
-  on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
-  in:fly={{ y: 200, duration: 2000, delay: 100 }}
-  out:fade={{ duration: 500 }}>Multiplayer</button
+<button on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
+  >Multiplayer</button
 >
-<button
-  in:fly={{ y: 200, duration: 2000, delay: 200 }}
-  out:fade={{ duration: 500 }}
-  on:click={() => stateMachine.emit({ type: "goToCardMenu" })}
+<button on:click={() => stateMachine.emit({ type: "goToCardMenu" })}
   >Manage Packs</button
 >
-<a
-  href="/leaderboards"
-  in:fly={{ y: 200, duration: 2000, delay: 300 }}
-  out:fade={{ duration: 500 }}
+<button on:click={() => stateMachine.emit({ type: "goToLeaderboards" })}
+  >Leaderboards</button
 >
-  <button>Leaderboards</button>
-</a>
 
 <style>
   button {
@@ -37,10 +25,5 @@
     font-size: 1.5rem;
     padding: 1rem 2rem;
     border-width: 2px;
-  }
-
-  a {
-    color: var(--text);
-    text-decoration: none;
   }
 </style>

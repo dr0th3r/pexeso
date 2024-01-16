@@ -17,6 +17,7 @@
 
   import { authStore } from "$lib/stores/auth";
   import { db } from "$lib/firebase/firebase.client";
+  import Leaderboards from "../lib/components/Leaderboards.svelte";
 
   let lobbyInfo = null;
 
@@ -69,48 +70,64 @@
     }
   });
 
-  let transitionComplete = false;
+  let transitionComplete = true;
 
-  $: if ($state !== "inMainMenu") {
+  $: if ($state) {
     transitionComplete = false;
     setTimeout(() => {
       transitionComplete = true;
     }, 500);
-  } else {
-    transitionComplete = false;
   }
 </script>
 
-<main class="outer">
-  {#if $state === "inMainMenu"}
+{#if $state === "inMainMenu" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <MainMenu />
-  {:else if $state === "playingSingleplayer" && transitionComplete}
+  </div>
+{:else if $state === "playingSingleplayer" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <Gameboard />
-  {:else if $state === "playingMultiplayer" && transitionComplete}
+  </div>
+{:else if $state === "playingMultiplayer" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <Gameboard multiplayer={true} {lobbyInfo} />
-  {:else if $state === "inLobbyMenu" && transitionComplete}
+  </div>
+{:else if $state === "inLobbyMenu" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <LobbyMenu />
-  {:else if $state === "inStatistics" && lobbyInfo}
+  </div>
+{:else if $state === "inStatistics" && lobbyInfo}
+  <div transition:fade={{ duration: 300 }}>
     <Stats
       stats={lobbyInfo?.players}
       multiplayer={true}
       lobbyId={lobbyInfo?.id}
     />
-  {:else if $state === "inStatistics"}
+  </div>
+{:else if $state === "inStatistics"}
+  <div transition:fade={{ duration: 300 }}>
     <Stats />
-  {:else if $state === "inCardMenu" && transitionComplete}
+  </div>
+{:else if $state === "inCardMenu" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <CardMenu />
-  {:else if $state === "inSignInMenu" && transitionComplete}
+  </div>
+{:else if $state === "inSignInMenu" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
     <SignIn />
-  {/if}
-</main>
+  </div>
+{:else if $state === "inLeaderboards" && transitionComplete}
+  <div transition:fade={{ duration: 300 }}>
+    <Leaderboards />
+  </div>
+{/if}
 
 <style>
   :global(body) {
     height: 100vh;
   }
 
-  .outer {
+  div {
     width: 100%;
     display: flex;
     flex-direction: column;

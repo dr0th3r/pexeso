@@ -26,6 +26,9 @@ function gameMachine(state: string, event: Event): string {
       } else if (event.type === "goToSignInMenu" && event.user === null) {
         return "inSignInMenu";
       }
+      else if (event.type === "goToLeaderboards") {
+        return "inLeaderboards"
+      }
     case "playingSingleplayer":
       if (event.type === "showStatistics") {
         return "inStatistics";
@@ -53,6 +56,10 @@ function gameMachine(state: string, event: Event): string {
         return "inMainMenu";
       }
     case "inSignInMenu":
+      if (event.type === "goToMainMenu") {
+        return "inMainMenu";
+      }
+    case "inLeaderboards":
       if (event.type === "goToMainMenu") {
         return "inMainMenu";
       }

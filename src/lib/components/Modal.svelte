@@ -1,8 +1,9 @@
 <script>
+  import { scale } from "svelte/transition";
 </script>
 
 <div class="outer">
-  <div class="inner">
+  <div class="inner" transition:scale={{ duration: 300 }}>
     <slot />
   </div>
 </div>
@@ -14,8 +15,6 @@
     left: 0;
     width: 100%;
     height: 100%;
-    backdrop-filter: brightness(60%);
-    backdrop-filter: blur(2px);
     display: flex;
     justify-content: center;
     align-items: center;

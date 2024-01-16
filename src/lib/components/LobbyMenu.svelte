@@ -12,7 +12,6 @@
 
   let imgs = $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
-
   $socketStore.on("lobby info", (data) => {
     lobbyInfo = data;
     localState = "inLobby";
@@ -80,40 +79,58 @@
     $socketStore.emit("leave lobby", lobbyInfo?.id, false);
     localState = "main";
   }
+
+  let transitionComplete = true;
+  let isFirstTransition = true;
+
+  $: if (localState && !isFirstTransition) {
+    transitionComplete = false;
+    setTimeout(() => {
+      transitionComplete = true;
+    }, 500);
+  } else if (localState && isFirstTransition) {
+    isFirstTransition = false;
+  }
 </script>
 
-{#if localState === "main"}
-  <header>
-    <h2>Lobby Menu</h2>
-    <button
-      class="home-btn"
-      on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
-      >Go To Main Menu</button
-    >
-  </header>
-  <div class="cards">
-    <button class="card" on:click={() => (localState = "createMenu")}
-      >Create Lobby</button
-    >
-    <button class="card" on:click={() => (localState = "joinMenu")}
-      >Join Lobby</button
+{#if localState === "main" && transitionComplete}
+  <div class="container" transition:fade={{ duration: 300 }}>
+    <header>
+      <h2>Lobby Menu</h2>
+      <button
+        class="home-btn"
+        on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
+        >Go To Main Menu</button
+      >
+    </header>
+    <div class="cards">
+      <button class="card" on:click={() => (localState = "createMenu")}
+        >Create Lobby</button
+      >
+      <button class="card" on:click={() => (localState = "joinMenu")}
+        >Join Lobby</button
+      >
+    </div>
+  </div>
+{:else if localState == "createMenu" && transitionComplete}
+  <div class="container" transition:fade={{ duration: 300 }}>
+    <input placeholder="Username..." bind:value={username} />
+    <button on:click={createLobby} class="create-join-btn">Create</button>
+    <button class="create-join-btn" on:click={() => (localState = "main")}
+      >Go Back</button
     >
   </div>
-{:else if localState == "createMenu"}
-  <input placeholder="Username..." bind:value={username} />
-  <button on:click={createLobby} class="create-join-btn">Create</button>
-  <button class="create-join-btn" on:click={() => (localState = "main")}
-    >Go Back</button
-  >
-{:else if localState == "joinMenu"}
-  <input placeholder="Username..." bind:value={username} />
-  <input placeholder="Lobby Id..." bind:value={joinLobbyId} />
-  <button on:click={joinLobby} class="create-join-btn">Join</button>
-  <button class="create-join-btn" on:click={() => (localState = "main")}
-    >Go Back</button
-  >
-{:else if localState == "inLobby" && lobbyInfo}
-  <div class="lobby">
+{:else if localState == "joinMenu" && transitionComplete}
+  <div class="container" transition:fade={{ duration: 300 }}>
+    <input placeholder="Username..." bind:value={username} />
+    <input placeholder="Lobby Id..." bind:value={joinLobbyId} />
+    <button on:click={joinLobby} class="create-join-btn">Join</button>
+    <button class="create-join-btn" on:click={() => (localState = "main")}
+      >Go Back</button
+    >
+  </div>
+{:else if localState == "inLobby" && lobbyInfo && transitionComplete}
+  <div class="lobby" transition:fade={{ duration: 300 }}>
     <h2>
       Lobby:&nbsp;
       <span class="lobby-id">{lobbyInfo?.id}</span>
@@ -178,6 +195,16 @@
 {/if}
 
 <style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    width: 100%;
+    height: 100%;
+  }
+
   h2,
   h3 {
     color: var(--text);
