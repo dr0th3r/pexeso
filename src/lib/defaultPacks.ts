@@ -15,7 +15,18 @@ export default [
   },
   {
     id: 1,
-    title: "Remante",
+    title: "Remante large",
     imgUrls: Array.from({ length: 32 }, (_, i) => `/${i + 1}.png`),
   },
+  {
+    id: 2,
+    title: "Remante medium",
+    imgUrls: Array.from({ length: 18 }, (_, i) => `/${i + 1}.png`),
+  },
+  {
+    id: 3,
+    title: "Remante small",
+    imgUrls: Array.from({ length: 8 }, (_, i) => `/${i + 1}.png`),
+  },
+  
 ];
