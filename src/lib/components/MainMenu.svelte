@@ -1,8 +1,4 @@
-<script>
-  import { authStore } from "../stores/auth";
-
-  import { fly, fade } from "svelte/transition";
-
+<script lang="ts">
   import stateMachine from "$lib/stores/state";
 </script>
 

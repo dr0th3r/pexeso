@@ -17,15 +17,19 @@ import stateMachine from "./state";
 import { listAll, ref, getBlob, uploadBytes, deleteObject, getDownloadURL } from "firebase/storage";
 import { loadingStore } from "./loading";
 
-import { StorageReference } from "firebase/storage";
+import type { StorageReference } from "firebase/storage";
 
-export const authStore = writable({
+export const authStore = writable<{
+  user: any;
+  loading: boolean;
+  error: string | null;
+}>({
   user: null,
   loading: false,
   error: null,
 });
 
-import { NewFile, Pack, DBPacks, SignData} from "../types";
+import type { NewFile, Pack, DBPacks, SignData} from "../types";
 
 export const authHandlers = {
   signIn: async (email: string, password: string, newData: SignData, oldDisplayName: string) => { //oldDisplayName = anonymouse<some-id>
@@ -102,11 +106,19 @@ export const authHandlers = {
       stateMachine.emit({ type: "goToMainMenu" });
     } catch (error) {
       console.error(error);
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
   signUp: async (email: string, password: string, initialData: SignData, oldDisplayName: string) => { //oldDisplayName = anonymouse<some-id>
@@ -160,33 +172,57 @@ export const authHandlers = {
       stateMachine.emit({ type: "goToMainMenu" });
     } catch (error) {
       console.error(error);
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
   logOut: async () => {
     try {
       await signOut(auth);
     } catch (error) {
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
   resetPassword: async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
     } catch (error) {
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
   updateEmail: async (email: string) => {
@@ -196,11 +232,19 @@ export const authHandlers = {
       else
         throw new Error("User not logged in");
     } catch (error) {
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
   updatePassword: async (password: string) => {
@@ -208,11 +252,19 @@ export const authHandlers = {
       if (!!auth.currentUser)
         await updatePassword(auth.currentUser, password);
     } catch (error) {
-      authStore.set({
-        user: null,
-        loading: false,
-        error: error.message,
-      });
+      if (typeof error === "string") {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error,
+        });
+      } else if (error instanceof Error) {
+        authStore.set({
+          user: null,
+          loading: false,
+          error: error.message,
+        });
+      }
     }
   },
 };
@@ -242,7 +294,8 @@ async function moveFiles(srcRef: StorageReference, destRef: StorageReference, up
       })
     }))
   } catch (error) {
-    throw new Error(error);
+    console.error(error);
+    return []
   }
 }
 
@@ -282,9 +335,13 @@ async function movePacks(packs: Pack[], oldId: string, newId: string): Promise<D
       })
     })) as Pack[];
 
+    if (newPacksData.length !== imgsCount) throw new Error("Something went wrong");
+
     loadingStore.stopLoading();
 
-    return newPacksData.reduce((acc: DBPacks | {}, curr: Pack) => {
+    return newPacksData.reduce((acc: DBPacks, curr: Pack) => {
+      if (!curr?.imgRefPaths) return acc;
+      
       acc[curr.id] = {
         title: curr.title,
         imgRefPaths: curr.imgRefPaths,

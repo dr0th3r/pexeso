@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { loadingStore } from "$lib/stores/loading";
 </script>
 

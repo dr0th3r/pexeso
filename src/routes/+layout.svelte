@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import Header from "../lib/components/Header.svelte";
   import Loading from "../lib/components/Loading.svelte";
 

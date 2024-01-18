@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { authStore } from "../stores/auth";
 
   import { userData } from "../stores/userData";
@@ -9,39 +9,46 @@
   import { fade } from "svelte/transition";
 
   import { socketStore } from "$lib/stores/socket";
+  import type { LobbyInfo } from "$lib/types";
+
+  let localState = "main";
+  let lobbyInfo: LobbyInfo = null;
+
+  $: if (lobbyInfo === null) {
+    localState = "main";
+  }
 
   let imgs = $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
 
-  $socketStore.on("lobby info", (data) => {
+  $socketStore?.on("lobby info", (data) => {
     lobbyInfo = data;
     localState = "inLobby";
   });
 
-  $socketStore.on("join lobby", (players) => {
+  $socketStore?.on("join lobby", (players) => {
+    if (!lobbyInfo) return;
+
     lobbyInfo.players = players;
     localState = "inLobby";
   });
 
-  $socketStore.on("player left lobby", (connectedPlayers) => {
+  $socketStore?.on("player left lobby", (connectedPlayers) => {
+    if (!lobbyInfo) return;
+
     lobbyInfo.players = connectedPlayers;
     lobbyInfo = lobbyInfo;
   });
 
-  $socketStore.on("toggle ready", (playerId) => {
+  $socketStore?.on("toggle ready", (playerId) => {
     const player = lobbyInfo?.players.find((player) => player.id == playerId);
 
-    console.log(player);
-
     if (!player) {
-      console.log(lobbyInfo);
+      return;
     }
 
     player.ready = !player.ready;
     lobbyInfo = lobbyInfo; //for svelte to refresh
   });
-
-  let localState = "main";
-  let lobbyInfo = null;
 
   let username = "";
   let joinLobbyId = "";
@@ -60,7 +67,7 @@
       alert("Invalid pexeso pack!");
     }
 
-    $socketStore.emit("create lobby", username, false, imgs);
+    $socketStore?.emit("create lobby", username, false, imgs);
   }
 
   function joinLobby() {
@@ -72,11 +79,11 @@
       return;
     }
 
-    $socketStore.emit("join lobby", username, joinLobbyId);
+    $socketStore?.emit("join lobby", username, joinLobbyId);
   }
 
   function leaveLobby() {
-    $socketStore.emit("leave lobby", lobbyInfo?.id, false);
+    $socketStore?.emit("leave lobby", lobbyInfo?.id, false);
     localState = "main";
   }
 
@@ -138,7 +145,7 @@
         <button
           class="copy-btn"
           on:click={() => {
-            navigator.clipboard.writeText(lobbyInfo?.id);
+            navigator.clipboard.writeText(lobbyInfo?.id || "");
             showCoppiedTooltip = true;
             setTimeout(() => {
               showCoppiedTooltip = false;
@@ -187,7 +194,7 @@
     </ul>
     <button
       on:click={() => {
-        $socketStore.emit("toggle ready", lobbyInfo?.id);
+        $socketStore?.emit("toggle ready", lobbyInfo?.id);
       }}>Ready</button
     >
     <button on:click={leaveLobby}>Leave</button>

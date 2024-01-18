@@ -45,6 +45,7 @@ interface UserData {
   packs: Pack[];
   chosenPack: Pack;
   modifiedPack: Pack | null;
+  mostPairsFound: number;
 }
 
 interface DBUserData {
@@ -62,4 +63,43 @@ interface DBUserData {
   };
 }
 
-export { NewFile, Pack, DBPack, DBPacks, SignData, Event, UserData, DBUserData}
+type Player = {
+  id: string,
+  name: string,
+  ready: boolean,
+  stats: {
+    leastCardsFlipped: number,
+    currCardsFlipped: number,
+    gamesPlayed: number,
+    mostFoundInRow: number,
+    currMostFoundInRow: number,
+    mostPairsFound: number,
+    pairsFound: number,
+  },
+}
+
+type LobbyInfo = {
+  id: string,
+  pack: Pack,
+  players: Player[]
+} | null
+
+type Message = {
+  name: string,
+  msg: string,
+}
+
+type Card = {
+  cardId: number,
+  groupId: number,
+  imgUrl: string,
+}
+
+type LeaderboardUser = {
+  username: string,
+  gamesPlayed: number,
+  leastCardsFlipped: number,
+  mostFoundInRow: number,
+}
+
+export type { NewFile, Pack, DBPack, DBPacks, SignData, Event, UserData, DBUserData, LobbyInfo, Player, Message, Card, LeaderboardUser}

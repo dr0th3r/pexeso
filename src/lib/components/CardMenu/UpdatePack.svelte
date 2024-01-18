@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { authStore } from "../../stores/auth";
   import { userData } from "../../stores/userData";
   import { db } from "../../firebase/firebase.client";
@@ -9,6 +9,9 @@
     getDownloadURL,
     ref,
     deleteObject,
+    type FirebaseStorage,
+    type StorageReference,
+    type UploadResult,
   } from "firebase/storage";
 
   import Compressor from "compressorjs";
@@ -17,9 +20,9 @@
   let currImgUrls = $userData?.modifiedPack?.imgUrls || [];
   let currImgRefPaths = $userData?.modifiedPack?.imgRefPaths || [];
 
-  let newImgs = [];
+  let newImgs: File[] = [];
 
-  let removedImgPositions = [];
+  let removedImgPositions: number[] = [];
 
   $: newImgUrls = newImgs.map((img) => URL.createObjectURL(img));
   $: currFilteredImgUrls = currImgUrls.filter(
@@ -36,11 +39,15 @@
     $userData.modifiedPack = null;
   }
 
-  function handleImgUpload(e) {
-    newImgs = [...newImgs, ...e.target.files];
+  function handleImgUpload(e: Event) {
+    const target = e.target as HTMLInputElement;
+
+    if (target?.files) {
+      newImgs = [...newImgs, ...target.files];
+    }
   }
 
-  function removeImg(i, isNew) {
+  function removeImg(i: number, isNew: boolean) {
     if (isNew) {
       newImgs.splice(i, 1);
       newImgs = newImgs;
@@ -65,30 +72,34 @@
     if ($userData?.modifiedPack?.id) {
       packId = $userData.modifiedPack.id;
 
-      await removeImgsFromDB(currImgRefPaths, removedImgPositions);
-      const [imgUrls, imgRefPaths] = await uploadImgs(packId, newImgs);
-
-      console.log(imgUrls, imgRefPaths);
-      console.log(currFilteredImgUrls, currImgRefPaths, removedImgPositions);
-
-      const updatedImgUrls = imgUrls.concat(currFilteredImgUrls);
-
-      const updatedImgRefPaths = imgRefPaths.concat(
-        currImgRefPaths.filter((_, i) => !removedImgPositions.includes(i))
-      );
-
-      if ($authStore.user) {
-        await updateUserProfile(
-          packId,
-          updatedImgUrls,
-          updatedImgRefPaths,
-          newPackTitle
+      try {
+        await removeImgsFromDB(currImgRefPaths, removedImgPositions);
+        const [imgUrls, imgRefPaths] = await uploadImgs(
+          String(packId),
+          newImgs
         );
-      }
 
-      $userData.modifiedPack.title = newPackTitle;
-      $userData.modifiedPack.imgUrls = updatedImgUrls;
-      $userData.modifiedPack.imgRefPaths = updatedImgRefPaths;
+        const updatedImgUrls = imgUrls.concat(currFilteredImgUrls);
+
+        const updatedImgRefPaths = imgRefPaths.concat(
+          currImgRefPaths.filter((_, i) => !removedImgPositions.includes(i))
+        );
+
+        if ($authStore.user) {
+          await updateUserProfile(
+            String(packId),
+            updatedImgUrls,
+            updatedImgRefPaths,
+            newPackTitle
+          );
+        }
+
+        $userData.modifiedPack.title = newPackTitle;
+        $userData.modifiedPack.imgUrls = updatedImgUrls;
+        $userData.modifiedPack.imgRefPaths = updatedImgRefPaths;
+      } catch (error) {
+        console.error(error);
+      }
     } else {
       packId = crypto.randomUUID();
 
@@ -115,7 +126,7 @@
     $userData.modifiedPack = null;
   }
 
-  async function removeImgsFromDB(imgRefPaths, positions) {
+  async function removeImgsFromDB(imgRefPaths: string[], positions: number[]) {
     try {
       const posCount = positions.length;
 
@@ -133,41 +144,41 @@
     }
   }
 
-  async function compressAndUploadImg(img, packRef, updateProgress) {
+  async function compressAndUploadImg(
+    img: File,
+    packRef: StorageReference,
+    updateProgress: () => void
+  ): Promise<UploadResult> {
     const compressionOptions = {
       quality: 0.6,
       maxWidth: 500,
       maxHeight: 500,
     };
 
-    console.log(img.name);
-
     return new Promise(async (resolve, reject) => {
       try {
         new Compressor(img, {
           ...compressionOptions,
           success: async (compressedImg) => {
-            try {
-              const snapshot = await uploadBytes(
-                ref(packRef, img.name),
-                compressedImg
-              );
-              updateProgress();
-              resolve(snapshot);
-            } catch (error) {
-              reject(new Error(error));
-            }
+            const snapshot = await uploadBytes(
+              ref(packRef, img.name),
+              compressedImg
+            );
+            updateProgress();
+            resolve(snapshot);
           },
         });
       } catch (error) {
-        reject(
-          new Error(`Error compressing image ${img.name}: ${error.message}`)
-        );
+        if (error instanceof Error) {
+          reject(`Error compressing image ${img.name}: ${error.message}`);
+        } else {
+          reject(`Error compressing image ${img.name}: ${error}`);
+        }
       }
     });
   }
 
-  async function uploadImgs(packId, imgs) {
+  async function uploadImgs(packId: string, imgs: File[]) {
     try {
       const packRef = ref(
         storage,
@@ -187,7 +198,7 @@
         )
       );
 
-      console.log(snapshots);
+      if (!snapshots?.length) throw new Error("No snapshots");
 
       loadingStore.stopLoading();
 
@@ -207,10 +218,16 @@
       return [snapshotUrls, snapshotRefPaths];
     } catch (error) {
       console.error(error);
+      return [];
     }
   }
 
-  async function updateUserProfile(packId, imgUrls, imgRefPaths, title) {
+  async function updateUserProfile(
+    packId: string,
+    imgUrls: string[],
+    imgRefPaths: string[],
+    title: string
+  ) {
     try {
       const newData = {
         [`packs.${packId}`]: {

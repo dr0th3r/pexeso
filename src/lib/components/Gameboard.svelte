@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { fade } from "svelte/transition";
 
   import { userData } from "$lib/stores/userData";
@@ -6,16 +6,22 @@
 
   import { socketStore } from "$lib/stores/socket";
 
+  import type { LobbyInfo, Message, Card } from "$lib/types";
+
   export let multiplayer = false;
-  export let lobbyInfo;
+  export let lobbyInfo: LobbyInfo;
 
   let imgs = multiplayer
-    ? lobbyInfo?.pack
-    : $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
+    ? lobbyInfo?.pack.imgUrls || defaultPacks[0].imgUrls
+    : $userData.chosenPack.imgUrls || defaultPacks[0].imgUrls;
 
   let playerOnTurn = 0;
 
-  let messages = [];
+  let messages: Message[] = [];
+
+  let flippedCards: Card[] = [];
+
+  let matchedPairs: Card[] = [];
 
   $: players = lobbyInfo?.players || [];
 
@@ -24,8 +30,7 @@
   }
 
   $socketStore?.on("flip card", (card) => {
-    flippedCards.push(card);
-    flippedCards = flippedCards;
+    flippedCards = [...flippedCards, card];
   });
 
   $socketStore?.on("card match", (newMatchedPairs) => {
@@ -40,6 +45,8 @@
   });
 
   $socketStore?.on("player left game", (remainingPlayers) => {
+    if (!lobbyInfo) return;
+
     lobbyInfo.players = remainingPlayers;
     lobbyInfo = lobbyInfo;
   });
@@ -67,7 +74,7 @@
     lobbyInfo = lobbyInfo; //for svelte to update
   });
 
-  $socketStore.on("chat", (playerName, msg) => {
+  $socketStore?.on("chat", (playerName, msg) => {
     messages = [
       ...messages,
       {
@@ -77,12 +84,9 @@
     ];
   });
 
-  let flippedCards = [];
-  let matchedPairs = [];
-
   $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
 
-  function flipCard(cardId) {
+  function flipCard(cardId: number) {
     $socketStore?.emit("flip card", cardId);
   }
 
@@ -91,13 +95,15 @@
     flippedCards = [];
     matchedPairs = [];
   }
-  function checkIfOnTurn(id) {
+  function checkIfOnTurn(id: string) {
+    if (!lobbyInfo) return false;
+
     return lobbyInfo.players[playerOnTurn].id == id;
   }
 
   startGame();
 
-  function scrollChat(node) {
+  function scrollChat(node: HTMLElement) {
     function scroll() {
       node.scroll({
         top: node.scrollHeight,
@@ -107,6 +113,15 @@
     scroll();
 
     return { update: scroll };
+  }
+
+  function postMsg({ target }: { target: HTMLFormElement }) {
+    const msg = new FormData(target).get("msg");
+
+    if (!msg) return;
+
+    $socketStore?.emit("chat", msg);
+    target.reset();
   }
 </script>
 
@@ -126,7 +141,7 @@
   style:grid-template-columns="repeat({columnCount}, min(calc(60vw / {columnCount}),
   calc(70vh / {columnCount})))"
 >
-  {#each Array((lobbyInfo?.pack?.length || 0) * 2) as _, index (index)}
+  {#each Array(imgs.length * 2) as _, index (index)}
     {@const matchedCard = matchedPairs.find((e) => e.cardId == index) || null}
     {@const flippedCard = flippedCards.find((e) => e.cardId == index) || null}
     {@const isFlipped = matchedCard != null || flippedCard != null}
@@ -163,8 +178,8 @@
     </div>
   {/each}
 </div>
-{#if lobbyInfo?.players?.length > 1}
-  <div class="chat" use:scrollChat={messages}>
+{#if lobbyInfo?.players?.length || 0 > 1}
+  <div class="chat" use:scrollChat={messages}> 
     <div class="chat-msgs">
       {#each messages as msg}
         <div>
@@ -173,17 +188,7 @@
         </div>
       {/each}
     </div>
-    <form
-      class="chat-input"
-      on:submit|preventDefault={(e) => {
-        const msg = new FormData(e.target).get("msg");
-
-        if (!msg) return;
-
-        $socketStore.emit("chat", msg);
-        e.target.reset();
-      }}
-    >
+    <form class="chat-input" on:submit|preventDefault={postMsg}>
       <input name="msg" />
       <button type="submit">Post</button>
     </form>

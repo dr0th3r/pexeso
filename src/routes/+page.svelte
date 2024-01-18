@@ -1,4 +1,4 @@
-<script>
+<script type="ts">
   import { fade, fly } from "svelte/transition";
 
   import stateMachine from "$lib/stores/state";
@@ -19,7 +19,9 @@
   import { db } from "$lib/firebase/firebase.client";
   import Leaderboards from "../lib/components/Leaderboards.svelte";
 
-  let lobbyInfo = null;
+  import type { LobbyInfo } from "$lib/types";
+
+  let lobbyInfo: LobbyInfo = null;
 
   $socketStore?.on("error", (err) => {
     alert(`Error: ${err}`);
@@ -33,6 +35,8 @@
   });
 
   $socketStore?.on("show stats", (players) => {
+    if (!lobbyInfo) return;
+
     lobbyInfo.players = players;
     lobbyInfo = lobbyInfo;
     stateMachine.emit({ type: "showStatistics" });
@@ -40,12 +44,16 @@
     console.log(lobbyInfo);
   });
 
-  $socketStore.on("delete lobby", () => {
+  $socketStore?.on("delete lobby", () => {
+    if (!lobbyInfo) return;
+
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
   });
 
-  $socketStore.on("you left lobby", () => {
+  $socketStore?.on("you left lobby", () => {
+    if (!lobbyInfo) return;
+
     lobbyInfo = null;
     stateMachine.emit({ type: "goToMainMenu" });
   });
@@ -86,7 +94,7 @@
   </div>
 {:else if $state === "playingSingleplayer" && transitionComplete}
   <div transition:fade={{ duration: 300 }}>
-    <Gameboard />
+    <Gameboard lobbyInfo={null} />
   </div>
 {:else if $state === "playingMultiplayer" && transitionComplete}
   <div transition:fade={{ duration: 300 }}>
@@ -103,10 +111,6 @@
       multiplayer={true}
       lobbyId={lobbyInfo?.id}
     />
-  </div>
-{:else if $state === "inStatistics"}
-  <div transition:fade={{ duration: 300 }}>
-    <Stats />
   </div>
 {:else if $state === "inCardMenu" && transitionComplete}
   <div transition:fade={{ duration: 300 }}>

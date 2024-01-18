@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { authStore, authHandlers } from "../stores/auth";
 
   import { createDBUserTemplate, userData } from "../stores/userData";
@@ -17,18 +17,18 @@
     errMsg = $authStore.error;
   }
 
-  async function handleSubmit(e) {
-    const formData = new FormData(e.target);
+  async function handleSubmit(e: Event) {
+    const formData = new FormData(e.target as HTMLFormElement);
 
     if (!formData) {
       errMsg = "Something went wrong! Please try again later";
       return;
     }
 
-    const username = formData.get("username");
-    const email = formData.get("email");
-    const password = formData.get("password");
-    const confirm_password = formData.get("confirm_password");
+    const username = formData.get("username") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirm_password = formData.get("confirm_password") as string;
     const merge_stats = formData.get("merge_stats");
     const merge_packs = formData.get("merge_packs");
 
@@ -41,9 +41,7 @@
     } else if (!signIn && username?.length <= 3) {
       errMsg = "Username must be at least 3 characters long!";
     } else {
-      let newData = {
-        ...createDBUserTemplate(username),
-      };
+      let newData = createDBUserTemplate(username);
 
       if (merge_stats) {
         newData = {
@@ -58,7 +56,9 @@
         newData = {
           ...newData,
           packs: $userData.packs.filter((pack) =>
-            defaultPacks.some((defaultPacks) => defaultPacks?.id !== pack?.id)
+            defaultPacks.some(
+              (defaultPack) => String(defaultPack?.id) !== pack?.id
+            )
           ),
         };
       }
@@ -75,7 +75,7 @@
 
 <form
   on:submit|preventDefault={handleSubmit}
-  style:filter={$authStore.loading && "brightness(0.8);"}
+  style:filter={$authStore.loading ? "brightness(0.8);" : ""}
 >
   <h2>{signIn ? "Sign In" : "Sign Up"}</h2>
   {#if !signIn}

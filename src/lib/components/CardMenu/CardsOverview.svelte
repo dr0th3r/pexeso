@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { authStore } from "../../stores/auth";
 
   import { userData } from "../../stores/userData";
@@ -19,50 +19,41 @@
   let filter = "";
   let imgWidth;
 
-  function removePack(packId) {
+  async function removePack(packId: string) {
     $userData.packs = pexesoPacks.filter(
-      (pexesoPack) => pexesoPack?.id !== packId
+      (pexesoPack) => String(pexesoPack?.id) !== packId
     );
 
     console.log($userData.packs);
 
-    listAll(
-      ref(
-        storage,
-        `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`
-      )
-    ).then((res) => {
-      res.items.forEach((itemRef) => {
-        deleteObject(itemRef)
-          .then(() => {
-            console.log(`File deleted successfully`);
-          })
-          .catch((error) => {
-            console.error(error);
-          });
-      });
-    });
+    try {
+      const res = await listAll(
+        ref(
+          storage,
+          `packs/${$authStore?.user?.uid || $userData.displayName}/${packId}`
+        )
+      );
 
-    if ($authStore?.user) {
-      getDoc(doc(usersRef, $authStore.user.uid))
-        .then((userDoc) => {
+      await Promise.all(
+        res.items.map((itemRef) => {
+          return deleteObject(itemRef);
+        })
+      );
+
+      if ($authStore?.user) {
+        const userDoc = await getDoc(doc(usersRef, $authStore.user.uid));
+        if (userDoc.exists()) {
           const packs = userDoc.data().packs;
 
           delete packs[packId];
 
-          updateDoc(doc(usersRef, $authStore.user.uid), {
+          await updateDoc(doc(usersRef, $authStore.user.uid), {
             packs: packs,
-          })
-            .then(() => {
-              console.log("Document successfully updated!");
-            })
-            .catch((error) => {
-              console.error("Error updating document: ", error);
-            });
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+          });
+        }
+      }
+    } catch (error) {
+      console.error(error);
     }
   }
 </script>
@@ -81,7 +72,7 @@
     class="card create-card"
     on:click={() => {
       $userData.modifiedPack = {
-        id: null,
+        id: crypto.randomUUID(),
         title: "",
         imgUrls: [],
       };
@@ -145,7 +136,7 @@
               <button
                 class="delete-btn"
                 on:click={() => {
-                  removePack(pack.id);
+                  removePack(String(pack.id));
                 }}
               >
                 <svg

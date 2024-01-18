@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
 
   import { usersRef } from "$lib/firebase/firebase.client";
@@ -7,6 +7,19 @@
   import { loadingStore } from "$lib/stores/loading";
 
   import stateMachine from "$lib/stores/state";
+
+  import type { LeaderboardUser } from "$lib/types";
+
+  let users: LeaderboardUser[] = [];
+
+  type Category = keyof LeaderboardUser;
+
+  let categories: Category[] = [
+    "username",
+    "gamesPlayed",
+    "leastCardsFlipped",
+    "mostFoundInRow",
+  ];
 
   onMount(async () => {
     const snapshot = await getDocs(
@@ -19,13 +32,11 @@
       return {
         username: docData.displayName,
         gamesPlayed: docData.gamesPlayed || 0,
-        leastMoves: docData.leastCardsFlipped,
-        mostPairsFoundInRow: docData.mostFoundInRow,
+        leastCardsFlipped: docData.leastCardsFlipped,
+        mostFoundInRow: docData.mostFoundInRow,
       };
     });
   });
-
-  let users = [];
 
   $: if (users.length === 0) {
     loadingStore.startLoading("Loading leaderboards...");
@@ -36,12 +47,10 @@
     }, 500);
   }
 
-  $: categories = Object.keys(users[0] || {});
-
-  let sortCategory = "gamesPlayed";
+  let sortCategory: Category = "gamesPlayed";
   let isDescending = true;
 
-  function handleFilter(category) {
+  function handleFilter(category: Category) {
     if (category === sortCategory) {
       isDescending = !isDescending;
     } else {
@@ -50,7 +59,7 @@
     }
   }
 
-  function camelToNormal(str) {
+  function camelToNormal(str: string) {
     return str
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (str) => str.toUpperCase());

@@ -1,16 +1,20 @@
-<script>
+<script lang="ts">
   import stateMachine from "$lib/stores/state";
 
   import { userData } from "$lib/stores/userData";
 
   import { socketStore } from "$lib/stores/socket";
+  import type { Player } from "$lib/types";
 
-  export let stats; //array of players
+  export let stats: Player[]; //array of players
   export let multiplayer = false;
-  export let lobbyId;
+  export let lobbyId: string;
 
   $socketStore?.on("toggle ready", (playerId) => {
     const player = stats?.find((player) => player.id == playerId);
+
+    if (!player) return;
+
     player.ready = !player.ready;
 
     stats = stats; //for svelte to refresh
@@ -19,8 +23,6 @@
   $socketStore?.on("player left lobby", (connectedPlayers) => {
     stats = connectedPlayers;
   });
-
-  $: console.log(stats);
 </script>
 
 {#if !multiplayer}
@@ -67,12 +69,12 @@
     </table>
   </div>
   <div class="btns">
-    <button on:click={() => $socketStore.emit("toggle ready", lobbyId)}
+    <button on:click={() => $socketStore?.emit("toggle ready", lobbyId)}
       >Ready</button
     >
     <button
       on:click={() => {
-        $socketStore.emit("leave lobby", lobbyId, true);
+        $socketStore?.emit("leave lobby", lobbyId, true);
       }}>Back To Menu</button
     >
   </div>
