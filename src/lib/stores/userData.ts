@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 
 import defaultPacks from "../defaultPacks";
 
-import type { Pack, UserData, DBUserData } from "../types";
+import type { Pack, UserData, DBUserData, DBPack, DBPacks } from "../types";
 import type { DocumentData } from "firebase/firestore";
 
 export function createUserTemplate(
@@ -45,13 +45,7 @@ function createUserDataStore() {
     update,
     createNewUser: (displayName?: string) => set(createUserTemplate(displayName)),
     setFromDBData: (data: DocumentData) => {
-      const dataPacks = data.pack as {
-        [key: string]: {
-          title: string;
-          imgRefPaths: string[];
-          imgUrls: string[];
-        };
-      }
+      const dataPacks = data.pack as DBPacks
 
       if (!dataPacks || Object.keys(dataPacks).length === 0) {
         set(
@@ -67,9 +61,11 @@ function createUserDataStore() {
         packs: [
           ...Object.entries(dataPacks).map(([key, value]) => {
             return {
+              id: key,
               title: value.title,
               imgRefPaths: value.imgRefPaths,
               imgUrls: value.imgUrls,
+              chosenSize: value.chosenSize,
             };
           }),
           ...defaultPacks

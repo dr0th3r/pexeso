@@ -70,8 +70,9 @@
     let packId;
 
     if ($userData?.modifiedPack?.id) {
+      
       packId = $userData.modifiedPack.id;
-
+      
       try {
         await removeImgsFromDB(currImgRefPaths, removedImgPositions);
         const [imgUrls, imgRefPaths] = await uploadImgs(
@@ -97,6 +98,7 @@
         $userData.modifiedPack.title = newPackTitle;
         $userData.modifiedPack.imgUrls = updatedImgUrls;
         $userData.modifiedPack.imgRefPaths = updatedImgRefPaths;
+        $userData.modifiedPack.chosenSize = Math.max(updatedImgUrls.length * 2, 4);
       } catch (error) {
         console.error(error);
       }
@@ -111,6 +113,8 @@
         await updateUserProfile(packId, imgUrls, imgRefPaths, newPackTitle);
       }
 
+      console.log("test")
+
       $userData.packs = [
         ...$userData.packs,
         {
@@ -118,7 +122,7 @@
           title: newPackTitle,
           imgUrls: imgUrls,
           imgRefPaths: imgRefPaths,
-          chosenSize: imgRefPaths.length
+          chosenSize: imgRefPaths.length * 2
         },
       ];
     }
@@ -235,6 +239,7 @@
           title: title,
           imgUrls: imgUrls,
           imgRefPaths: imgRefPaths,
+          chosenSize: Math.max(imgUrls.length * 2, 4)
         },
       };
 
@@ -242,11 +247,13 @@
 
       loadingStore.startLoading("Updating user profile...");
 
+      console.log($authStore.user.uid)
+
       await updateDoc(doc(db, "users", $authStore.user.uid), newData);
 
       loadingStore.stopLoading();
     } catch (error) {
-      console.error(error);
+      console.error(error.message);
     }
   }
 </script>

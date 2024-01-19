@@ -12,6 +12,8 @@
   import { doc, getDoc, updateDoc } from "firebase/firestore";
   import { listAll, ref, deleteObject } from "firebase/storage";
 
+  import { db } from "../../firebase/firebase.client";
+
   $: pexesoPacks = $userData.packs || defaultPacks;
 
   console.log($userData.packs);
@@ -57,6 +59,30 @@
     }
   }
 
+  async function choosePack(pack: Pack) {
+    $userData.chosenPack = pack;
+
+    if ($authStore?.user) {
+      try {      
+        await updateDoc(doc(db, "users", $authStore.user.uid),
+          {
+            chosenPackId: pack.id,
+            [`packs.${pack.id}`]: {
+              title: pack.title,
+              imgUrls: pack.imgUrls,
+              imgRefPaths: pack.imgRefPaths,
+              chosenSize: pack.chosenSize,
+            }
+          },
+        )
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    stateMachine.emit({ type: "goToMainMenu" }); 
+  }
+
 </script>
 
 <header>
@@ -73,7 +99,7 @@
     class="card create-card"
     on:click={() => {
       $userData.modifiedPack = {
-        id: crypto.randomUUID(),
+        id: "",
         title: "",
         imgUrls: [],
         chosenSize: 0,
@@ -102,11 +128,7 @@
           <div class="btns">
             <button
               class="choose-btn"
-              on:click={() => {
-                console.log(pack.chosenSize)
-                $userData.chosenPack = pack;
-                stateMachine.emit({ type: "goToMainMenu" });
-              }}
+              on:click={() => choosePack(pack)}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
