@@ -45,7 +45,10 @@ function createUserDataStore() {
     update,
     createNewUser: (displayName?: string) => set(createUserTemplate(displayName)),
     setFromDBData: (data: DocumentData) => {
-      const dataPacks = data.pack as DBPacks
+      const dataPacks = data.packs as DBPacks
+
+      console.log(data);
+
 
       if (!dataPacks || Object.keys(dataPacks).length === 0) {
         set(
@@ -53,6 +56,7 @@ function createUserDataStore() {
         );
         return
       }
+
    
 
       set({

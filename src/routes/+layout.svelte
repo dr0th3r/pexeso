@@ -41,6 +41,7 @@
 
         const userDoc = await getDoc(doc(usersRef, user.uid));
 
+
         if (userDoc.exists()) {
           userData.setFromDBData(userDoc.data());
         }
