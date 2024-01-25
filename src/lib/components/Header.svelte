@@ -1,31 +1,29 @@
 <script>
-  import { authStore, authHandlers } from "../stores/auth";
-  import stateMachine from "../stores/state";
+  import { logOut } from "$lib/firebase/auth";
+  import state from "$lib/stores/state";
 
-  import { socketStore } from "../stores/socket";
+  import userData from "$lib/stores/userData";
 </script>
 
 <nav>
   <h1>
-    <a
-      href="/"
+    <button class="logo"
       on:click={() => {
-        stateMachine.emit({ type: "goToMainMenu" });
-        $socketStore?.emit("leave lobby", true);
+        state.emit({ type: "go to main menu", sendLeaveGame: true });
       }}
     >
       Pexeso
-    </a>
+    </button>
   </h1>
   <button
     class="profile-img-placeholder"
     on:click={() => {
-      if ($authStore.user) {
-        authHandlers.logOut();
+      if ($userData?.dbId) {
+        logOut();
       } else {
-        stateMachine.emit({ type: "goToSignInMenu", user: $authStore.user });
+        state.emit({ type: "go to singin menu" });
       }
-    }}>{$authStore.user ? "Log Out" : "Sign In"}</button
+    }}>{$userData?.dbId ? "Log Out" : "Sign In"}</button
   >
 </nav>
 
@@ -36,13 +34,25 @@
     align-items: center;
   }
 
-  h1,
-  a {
+  h1 {
     text-decoration: none;
     color: var(--text);
     cursor: pointer;
     font-size: 2rem;
   }
+
+  .logo {
+    font-size: 2rem;
+    border: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .logo:hover {
+    background-color: transparent;
+  }
+
+
 
   button {
     margin-left: auto;

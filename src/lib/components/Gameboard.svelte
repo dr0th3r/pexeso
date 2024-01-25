@@ -1,117 +1,152 @@
 <script lang="ts">
   import { fade } from "svelte/transition";
 
-  import { userData } from "$lib/stores/userData";
-  import defaultPacks from "../defaultPacks";
+  import defaultPacks from "$lib/defaultPacks";
 
+  import type { Card, SocketCard, GameStats, ClientPack } from "$lib/types";
   import { socketStore } from "$lib/stores/socket";
-
-  import type { LobbyInfo, Message, Card } from "$lib/types";
+  import userData from "$lib/stores/userData";
+  import CardMenu from "./CardMenu.svelte";
 
   export let multiplayer = false;
-  export let lobbyInfo: LobbyInfo;
 
-  let imgs = getImgs();
+  import gameStats from "$lib/stores/gameStats";
+  import state from "$lib/stores/state";
+  import { doc, updateDoc } from "firebase/firestore";
+  import { db } from "$lib/firebase/firebase.client";
 
-  $: console.log(imgs);
+  let cardCount = 0;
 
-  function getImgs() {
-    if (multiplayer && lobbyInfo?.pack) {
-      return lobbyInfo.pack
-    } else if (!multiplayer && $userData?.chosenPack) {
-      return $userData.chosenPack.imgUrls.slice(0, $userData.chosenPack.chosenSize / 2);
-    } else {
-      return defaultPacks[0].imgUrls.slice(0, defaultPacks[0].chosenSize / 2);
-    }
-  }
+  $: columnCount = Math.ceil(Math.sqrt(cardCount));
+  
+  let matchedCards: SocketCard[] = [];
+  let flippedCards: SocketCard[] = [];
 
-  let playerOnTurn = 0;
+  let messages: {
+    name: string;
+    msg: string;
+  }[] = [];
 
-  let messages: Message[] = [];
 
-  let flippedCards: Card[] = [];
+  $socketStore?.on("game started", (initialStats: {
+    id: string;
+    newStats: GameStats
+  }[], newCardCount: number) => {
 
-  let matchedPairs: Card[] = [];
+    $gameStats = initialStats.reduce((acc, curr) => {
+      acc[curr.id] = curr.newStats;
 
-  $: players = lobbyInfo?.players || [];
+      return acc;
+    }, {} as {
+      [key: string]: GameStats
+    })
 
-  if (!multiplayer) {
-    $socketStore?.emit("create lobby", $userData.displayName, true, imgs);
-  }
+    cardCount = newCardCount;
+  })
 
-  $socketStore?.on("flip card", (card) => {
+  $socketStore?.on("card flipped", (card: SocketCard, stats: {
+    id: string;
+    newStats: Partial<GameStats>
+  }) => {
+    console.log("stats: ", stats);
     flippedCards = [...flippedCards, card];
-  });
 
-  $socketStore?.on("card match", (newMatchedPairs) => {
-    matchedPairs.push(newMatchedPairs[0]);
-    matchedPairs.push(newMatchedPairs[1]);
-    console.log(newMatchedPairs);
-    matchedPairs = matchedPairs;
-  });
+    $gameStats[stats.id] = {
+      ...$gameStats[stats.id],
+      ...stats.newStats
+    }
+  })
 
-  $socketStore?.on("reset flipped cards", () => {
-    flippedCards = [];
-  });
+  $socketStore?.on("cards matched", (cards: SocketCard[], stats: {
+    id: string;
+    newStats: Partial<GameStats>
+  }) => {
+    matchedCards = [...matchedCards, ...cards];
+    flippedCards = []
 
-  $socketStore?.on("player left game", (remainingPlayers) => {
-    if (!lobbyInfo) return;
+    $gameStats[stats.id] = {
+      ...$gameStats[stats.id],
+      ...stats.newStats
+    }
+  })
 
-    lobbyInfo.players = remainingPlayers;
-    lobbyInfo = lobbyInfo;
-  });
+  $socketStore?.on("flip cards back", (stats: {
+    id: string;
+    newStats: Partial<GameStats>
+  }) => {
+    flippedCards = []
 
-  $socketStore?.on("next player", (nextPlayer) => {
-    playerOnTurn = nextPlayer;
-    lobbyInfo = lobbyInfo;
-  });
+    $gameStats[stats.id] = {
+      ...$gameStats[stats.id],
+      ...stats.newStats
+    }
+  })
 
-  $socketStore?.on("set temp stats", (playerId, stats) => {
-    console.log(players, playerId, stats);
-    if (players?.length === 0) {
-      console.log(lobbyInfo);
+  $socketStore?.on("game ended", async (stats: {
+    id: string;
+    newStats: Partial<GameStats>
+  }) => {
+    $gameStats[stats.id] = {
+      ...$gameStats[stats.id],
+      ...stats.newStats
     }
 
-    const player = players?.find((player) => player.id === playerId);
-    if (stats.leastCardsFlipped === null) {
-      stats.leastCardsFlipped = Infinity;
+    if (!$userData) return
+    $userData.stats = {
+      ...$userData.stats,
+      gamesPlayed: $userData.stats.gamesPlayed + 1,
+      leastCardsFlipped: Math.min(
+        $userData.stats.leastCardsFlipped, 
+        $gameStats[$userData.socketId].currCardsFlipped
+      ),
+      mostCardsFoundInRow: Math.max(
+        $userData.stats.mostCardsFoundInRow, 
+        $gameStats[$userData.socketId].mostCardsFoundInRow
+      ),
     }
 
-    if (player) {
-      player.stats = stats;
+    if ($userData.dbId) {
+      console.log("updating user")
+
+      await updateDoc(doc(db, "users", $userData.dbId), {
+        stats: $userData.stats
+      })
     }
-    //player.stats = stats;
-    lobbyInfo = lobbyInfo; //for svelte to update
-  });
 
-  $socketStore?.on("chat", (playerName, msg) => {
-    messages = [
-      ...messages,
-      {
-        name: playerName,
-        msg: msg,
-      },
-    ];
-  });
+    state.emit({type: "show statistics"})
+  })
 
-  $: columnCount = Math.ceil(Math.sqrt(imgs.length * 2));
+  $socketStore?.on("message sent", (msg: {
+    name: string;
+    msg: string;
+  }) => {
+    messages = [...messages, msg];
+  })
 
-  function flipCard(cardId: number) {
-    $socketStore?.emit("flip card", cardId);
+  $socketStore?.on("game deleted", () => {
+    console.log("game deleted")
+    state.emit({ type: "go to main menu", sendLeaveGame: false })
+  })
+
+  function flipCard(id: number) {
+    if (flippedCards.length >= 2 || flippedCards[0]?.id === id) {
+      return;
+    }
+
+    $socketStore?.emit("flip card", id);
   }
 
-  function startGame() {
-    $socketStore?.emit("set stats", $userData);
-    flippedCards = [];
-    matchedPairs = [];
-  }
-  function checkIfOnTurn(id: string) {
-    if (!lobbyInfo) return false;
+  function sendMessage(event: Event) {
+    event.preventDefault();
 
-    return lobbyInfo.players[playerOnTurn].id == id;
-  }
+    const msg = (event.target as HTMLFormElement).msg.value;
 
-  startGame();
+    if (msg.length > 0) {
+      $socketStore?.emit("send message", msg);
+    }
+
+    (event.target as HTMLFormElement).msg.value = "";
+  }
 
   function scrollChat(node: HTMLElement) {
     function scroll() {
@@ -120,93 +155,110 @@
         behavior: "smooth",
       });
     }
+
     scroll();
 
-    return { update: scroll };
+    return { update: scroll }
   }
 
-  function postMsg(e: Event) {
-    const target = e.target as HTMLFormElement;
-    const msg = new FormData(target).get("msg");
+  if (!multiplayer) {
+    console.log($userData);
 
-    if (!msg) return;
-
-    $socketStore?.emit("chat", msg);
-    target.reset();
+    $socketStore?.emit("start singleplayer game", $userData);
   }
 </script>
 
-{#if multiplayer}
-  <div class="player-list">
-    {#each players as { name, id } (id)}
-      <span
-        style:border={checkIfOnTurn(id) ? "1px solid var(--primary)" : "none"}
-        >{name}</span
-      >
+<div class="gameboard-container">
+  {#if multiplayer}
+    <div class="player-list">
+    </div>
+  {/if}
+  <div
+    class="board"
+    in:fade={{ duration: 500 }}
+    style:grid-template-columns="repeat({columnCount}, min(calc(60vw / {columnCount}),
+    calc(70vh / {columnCount})))"
+  >
+    {#each Array(cardCount) as _, index (index)}
+      {@const matchedCard = matchedCards.find((el) => el?.id === index) || null}
+      {@const flippedCard = flippedCards.find((el) => el?.id === index) || null}
+      {@const isFlipped = matchedCard !== null || flippedCard !== null}
+      {@const card = matchedCard || flippedCard || null}
+      <button class:flipped={isFlipped} on:click={() => flipCard(index)}>
+        <div class="img-container" class:found={matchedCard !== null}>
+          <img
+            src={card !== null
+              ? card.imgUrl
+              : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"}
+            alt="card"
+          />
+        </div>
+        <div class="logo-container">
+          <img
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"
+            alt="remante logo"
+          />
+        </div>
+      </button>
     {/each}
   </div>
-{/if}
-<div
-  class="board"
-  in:fade={{ duration: 500 }}
-  style:grid-template-columns="repeat({columnCount}, min(calc(60vw / {columnCount}),
-  calc(70vh / {columnCount})))"
->
-  {#each Array(imgs.length * 2) as _, index (index)}
-    {@const matchedCard = matchedPairs.find((el) => el?.cardId === index) || null}
-    {@const flippedCard = flippedCards.find((el) => el?.cardId === index) || null}
-    {@const isFlipped = matchedCard != null || flippedCard != null}
-    {@const card = matchedCard == null ? flippedCard : matchedCard}
-    <button class:flipped={isFlipped} on:click={() => flipCard(index)}>
-      <div class="img-container" class:found={matchedCard != null}>
-        <img
-          src={card != null
-            ? card.imgUrl
-            : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"}
-          alt="card"
-        />
-      </div>
-      <div class="logo-container">
-        <img
-          src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRizdEOe0q947NoDnyXrN5X5HiiyCA7OTyZ47vTocXzjQ&s"
-          alt="remante logo"
-        />
-      </div>
-    </button>
-  {/each}
-</div>
-<div class="stats">
-  {#each players || [] as player}
-    {@const stats = player?.stats}
-    <div>
-      <p style:font-weight="bold">{player?.name}</p>
-      <ul>
-        <li>Games played:&nbsp;{stats?.gamesPlayed}</li>
-        <li>Pairs found:&nbsp;{stats?.pairsFound}</li>
-        <li>Most in row:&nbsp;{stats?.mostFoundInRow}</li>
-        <li>Cards flipped:&nbsp;{stats?.currCardsFlipped}</li>
-      </ul>
-    </div>
-  {/each}
-</div>
-{#if lobbyInfo?.players?.length || 0 > 1}
-  <div class="chat" use:scrollChat={messages}> 
-    <div class="chat-msgs">
-      {#each messages as msg}
+  <div class="stats">
+    {#if multiplayer}
+      {#each Object.values($gameStats) as players}
         <div>
-          <p style:font-weight="bold">{msg.name}</p>
-          <p>{msg.msg}</p>
+          <p style:font-weight="bold">{players?.name}</p>
+          <ul>
+            <li>Most pairs found in row:&nbsp;{players?.mostCardsFoundInRow}</li>
+            <li>Currently pairs found in row:&nbsp;{players?.currCardsFoundInRow}</li>
+            <li>Cards flipped: {players?.currCardsFlipped}</li>
+          </ul>
         </div>
       {/each}
-    </div>
-    <form class="chat-input" on:submit|preventDefault={postMsg}>
-      <input name="msg" />
-      <button type="submit">Post</button>
-    </form>
+    {:else}
+      {@const stats = $userData?.socketId ? $gameStats[$userData?.socketId] : {
+        name: "unknown",
+        mostCardsFoundInRow: 0,
+        currCardsFlipped: 0,
+        currCardsFoundInRow: 0,
+        currTime: 0,
+      }}
+      <div>
+        <p style:font-weight="bold">{stats?.name}</p>
+        <ul>
+          <li>Most pairs found in row:&nbsp;{stats?.mostCardsFoundInRow}</li>
+          <li>Currently pairs found in row:&nbsp;{stats?.currCardsFoundInRow}</li>
+          <li>Cards flipped: {stats?.currCardsFlipped}</li>
+        </ul>
+      </div>
+    {/if}
   </div>
-{/if}
+  {#if multiplayer && Object.keys($gameStats).length > 0}
+    <div class="chat" use:scrollChat={messages}> 
+      <div class="chat-msgs">
+        {#each messages as msg}
+          <div>
+            <p style:font-weight="bold">{msg.name}</p>
+            <p>{msg.msg}</p>
+          </div>
+        {/each}
+      </div>
+      <form class="chat-input" on:submit|preventDefault={sendMessage}>
+        <input name="msg" />
+        <button type="submit">Post</button>
+      </form>
+    </div>
+  {/if}
+</div>
+
 
 <style>
+  .gameboard-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
   .player-list {
     position: absolute;
     top: -2.4rem;

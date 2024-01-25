@@ -1,81 +1,101 @@
 import { writable } from "svelte/store";
 
-import defaultPacks from "../defaultPacks";
+import type { ClientUser, DBUser } from "../types";
 
-import type { Pack, UserData, DBUserData, DBPack, DBPacks } from "../types";
-import type { DocumentData } from "firebase/firestore";
+import { updateDoc, doc } from "firebase/firestore";
 
-export function createUserTemplate(
-  displayName = `anonymous${Math.floor(Math.random() * 1000)}`
-): UserData {
-  return {
-    displayName: displayName,
-    leastCardsFlipped: Infinity,
-    currCardsFlipped: 0,
-    gamesPlayed: 0,
-    gamesWon: 0,
-    mostFoundInRow: 0,
-    currMostFoundInRow: 0,
-    packs: [...defaultPacks],
-    chosenPack: defaultPacks[0],
-    modifiedPack: null,
-    mostPairsFound: 0,
-  };
+import { db } from "../firebase/firebase.client";
+import defaultPacks from "$lib/defaultPacks";
+
+function createUserTemplate(name=`Anonymous_${Math.floor(Math.random() * 1000)}`): ClientUser {
+    return {
+        dbId: "",
+        socketId: "",
+        name: name,
+        stats: {
+            gamesPlayed: 0,
+            winCount: 0,
+            leastCardsFlipped: Infinity,
+            mostCardsFoundInRow: 0,
+            bestTime: Infinity
+        },
+        selectedPackId: "0",
+        packs: defaultPacks,
+    }
 }
 
-export function createDBUserTemplate(displayName = "anonymous", packs: Pack[] =[]) {
-  return {
-    displayName: displayName,
-    chosenPackId: 0,
-    gamesPlayed: 0,
-    leastCardsFlipped: Infinity,
-    mostFoundInRow: 0,
-    packs: packs,
-  };
-}
+const userData = function() {
+    const { subscribe, set, update } = writable<ClientUser | null>(null);
 
-export const userData = createUserDataStore();
+    return {
+        subscribe,
+        set,
+        update,
+        reset: () => set(createUserTemplate()),
+        createTemplate: createUserTemplate,
+        setFromDB: (dbUser: DBUser, dbId: string) => {
+            set({
+                ...dbUser,
+                dbId,
+                socketId: "", //add creating one later
+                packs: [...Object.entries(dbUser.packs).map(([id, pack]) => {
+                    return { id, ...pack }
+                }), ...defaultPacks]
+            })
+        },
+        parseForDB: (user: ClientUser) => {
+            const { dbId, socketId, ...DBUser } = user; //we get rid of the ids
+            
+            return [
+                {
+                ...DBUser,
+                packs: user.packs.reduce((acc, pack) => {
+                    acc[pack.id] = pack;
+                    return acc;
+                }, {} as DBUser["packs"])
+                } as DBUser,
+                user.dbId
+            ] as [DBUser, string];
+        },
+        updateStats: async (stats: Partial<ClientUser["stats"]>) => {
+            let dbId = null;
 
-function createUserDataStore() {
-  const { subscribe, set, update } = writable(createUserTemplate());
+            let oldStats = {};
+            let updatedStats = {};
 
-  return {
-    subscribe,
-    set,
-    update,
-    createNewUser: (displayName?: string) => set(createUserTemplate(displayName)),
-    setFromDBData: (data: DocumentData) => {
-      const dataPacks = data.packs as DBPacks
+            update((user) => {
+                if (!user) return null;
 
-      console.log(data);
+                dbId = user.dbId;
 
+                oldStats = user.stats;
 
-      if (!dataPacks || Object.keys(dataPacks).length === 0) {
-        set(
-          createUserTemplate(data?.displayName)
-        );
-        return
-      }
+                updatedStats = {
+                    ...oldStats,
+                    ...stats
+                }
 
-   
+                return {
+                    ...user,
+                    stats: updatedStats
+                } as ClientUser;
+            })
 
-      set({
-        ...createUserTemplate(data?.displayName),
-        ...data,
-        packs: [
-          ...Object.entries(dataPacks).map(([key, value]) => {
-            return {
-              id: key,
-              title: value.title,
-              imgRefPaths: value.imgRefPaths,
-              imgUrls: value.imgUrls,
-              chosenSize: value.chosenSize,
-            };
-          }),
-          ...defaultPacks
-        ],
-      } as UserData); // Add 'as UserData' to explicitly specify the type
-    },
+            if (dbId) {
+                try {
+                    await updateDoc(doc(db, "users", dbId), {
+                        stats: updatedStats
+                    })
+                } catch (error) {
+                    console.error(error);
+                    update((user) => ({
+                        ...user,
+                        stats: oldStats
+                    }) as ClientUser)
+                }
+            }
+        }
+    }
+}();
 
-  };
-}
+export default userData;

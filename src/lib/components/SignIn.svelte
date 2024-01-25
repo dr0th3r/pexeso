@@ -1,81 +1,42 @@
 <script lang="ts">
-  import { authStore, authHandlers } from "../stores/auth";
+  import userData from "$lib/stores/userData";
 
-  import { createDBUserTemplate, userData } from "../stores/userData";
+  import * as auth from "$lib/firebase/auth";
 
-  import stateMachine from "../stores/state";
-
-  import defaultPacks from "../defaultPacks";
-
-  $: console.log($authStore.loading);
+  import defaultPacks from "$lib/defaultPacks";
+  import state from "$lib/stores/state";
 
   let signIn = true;
 
   let errMsg = "";
 
-  $: if ($authStore.error) {
-    errMsg = $authStore.error;
-  }
-
-  async function handleSubmit(e: Event) {
+  function handleSubmit(e: Event) {
     const formData = new FormData(e.target as HTMLFormElement);
 
-    if (!formData) {
-      errMsg = "Something went wrong! Please try again later";
-      return;
+    const { email, password, username, confirm_password } = Object.fromEntries(
+      formData.entries()
+    ) as {
+      email: string;
+      password: string;
+      username: string | undefined;
+      confirm_password: string | undefined;
+    };
+
+    if (signIn) {
+      auth.signIn(null, email, password);
+    } else if (username && password && password === confirm_password) {
+      auth.signUp({
+        ...userData.createTemplate(),
+        name: username
+      }, email, password);
     }
 
-    const username = formData.get("username") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-    const confirm_password = formData.get("confirm_password") as string;
-    const merge_stats = formData.get("merge_stats");
-    const merge_packs = formData.get("merge_packs");
-
-    if (!email) {
-      errMsg = "You must provide a email!";
-    } else if (!password) {
-      errMsg = "You must provide a password!";
-    } else if (!signIn && password !== confirm_password) {
-      errMsg = "Passwords don't match!";
-    } else if (!signIn && username?.length <= 3) {
-      errMsg = "Username must be at least 3 characters long!";
-    } else {
-      let newData = createDBUserTemplate(username);
-
-      if (merge_stats) {
-        newData = {
-          ...newData,
-          gamesPlayed: $userData.gamesPlayed,
-          leastCardsFlipped: $userData.leastCardsFlipped,
-          mostFoundInRow: $userData.mostFoundInRow,
-        };
-      }
-
-      if (merge_packs) {
-        newData = {
-          ...newData,
-          packs: $userData.packs.filter((pack) =>
-            defaultPacks.some(
-              (defaultPack) => String(defaultPack?.id) !== pack?.id
-            )
-          ),
-        };
-      }
-
-      authHandlers[signIn ? "signIn" : "signUp"](
-        email,
-        password,
-        newData,
-        $userData.displayName
-      );
-    }
+    state.emit({ type: "go to main menu" });
   }
 </script>
 
 <form
   on:submit|preventDefault={handleSubmit}
-  style:filter={$authStore.loading ? "brightness(0.8);" : ""}
 >
   <h2>{signIn ? "Sign In" : "Sign Up"}</h2>
   {#if !signIn}
@@ -104,13 +65,13 @@
       required
     />
   {/if}
-  {#if !$authStore?.user && $userData?.gamesPlayed > 0}
+  {#if $userData && $userData?.stats?.gamesPlayed > 0}
     <label>
       <input type="checkbox" name="merge_stats" />
       Merge statistics
     </label>
   {/if}
-  {#if !$authStore?.user && $userData?.packs?.length > defaultPacks?.length}
+  {#if $userData && $userData?.packs?.length > defaultPacks?.length}
     <label>
       <input type="checkbox" name="merge_packs" />
       Merge packs

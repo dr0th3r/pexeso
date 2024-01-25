@@ -1,7 +1,9 @@
+import type { ClientPack } from "./types";
+
 export default [
   {
-    id: 0,
-    title: "Default",
+    id: "0",
+    name: "Default",
     imgUrls: [
       "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Svelte_Logo.svg/1200px-Svelte_Logo.svg.png",
       "https://cdn.worldvectorlogo.com/logos/next-js.svg",
@@ -12,12 +14,12 @@ export default [
       "https://cdn.worldvectorlogo.com/logos/meteor-icon.svg",
       "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/NestJS.svg/1200px-NestJS.svg.png",
     ],
-    chosenSize: 16,
+    chosenSize: 4,
   },
   {
-    id: 1,
-    title: "Remante",
+    id: "1",
+    name: "Remante",
     imgUrls: Array.from({ length: 32 }, (_, i) => `/${i + 1}.png`),
     chosenSize: 64,
   },
-];
+] as ClientPack[];

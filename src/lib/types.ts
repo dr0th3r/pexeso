@@ -1,107 +1,79 @@
-interface NewFile {
-  url: string;
-  path: string;
-}
-
 interface Pack {
-  id: string | number;
-  title: string;
-  imgUrls: string[];
-  imgRefPaths?: string[];
-  chosenSize: number;
-}
-
-interface DBPack {
-  title: string;
-  imgRefPaths: string[];
+  name: string;
   imgUrls: string[];
   chosenSize: number;
 }
 
 interface DBPacks {
-  [key: string]: DBPack;
+  [id: string]: Pack;
 }
 
-interface SignData {
-  displayName: string;
-  chosenPackId: number;
-  gamesPlayed: number;
-  leastCardsFlipped: number;
-  mostFoundInRow: number;
-  packs: Pack[];
+interface ClientPack extends Pack {
+  id: string;
 }
 
-interface Event { 
-  type: string;
-  user?: any;
-}
-
-interface UserData {
-  displayName: string;
-  leastCardsFlipped: number;
+interface GameStats { //stats during the game
+  name: string;
+  mostCardsFoundInRow: number;
   currCardsFlipped: number;
-  gamesPlayed: number;
-  gamesWon: number;
-  mostFoundInRow: number;
-  currMostFoundInRow: number;
-  packs: Pack[];
-  chosenPack: Pack;
-  modifiedPack: Pack | null;
-  mostPairsFound: number;
+  currCardsFoundInRow: number;
+  currTime: number;
 }
 
-interface DBUserData {
-  displayName: string;
-  chosenPackId: number;
-  gamesPlayed: number;
-  leastCardsFlipped: number;
-  mostFoundInRow: number;
-  packs: {
-    [key: string]: {
-      title: string;
-      imgRefPaths: string[];
-      imgUrls: string[];
-    };
-  };
-}
-
-type Player = {
-  id: string,
-  name: string,
-  ready: boolean,
+interface User {
+  name: string;
   stats: {
-    leastCardsFlipped: number,
-    currCardsFlipped: number,
-    gamesPlayed: number,
-    mostFoundInRow: number,
-    currMostFoundInRow: number,
-    mostPairsFound: number,
-    pairsFound: number,
-  },
+    gamesPlayed: number;
+    winCount: number;
+    leastCardsFlipped: number;
+    mostCardsFoundInRow: number;
+    bestTime: number;
+  }
+  selectedPackId: string;
 }
 
-type LobbyInfo = {
-  id: string,
-  pack: Pack,
-  players: Player[]
-} | null
-
-type Message = {
-  name: string,
-  msg: string,
+interface ClientUser extends User {
+  dbId: string;
+  packs: ClientPack[];
+  socketId: string;
 }
 
-type Card = {
-  cardId: number,
-  groupId: number,
-  imgUrl: string,
+interface SocketUser extends User {
+  socketId: string;
+  ready: boolean;
+  stats: { //maybe improve later
+    gamesPlayed: number;
+    winCount: number;
+    leastCardsFlipped: number;
+    mostCardsFoundInRow: number;
+    bestTime: number;
+
+    currCardsFlipped: number;
+    currCardsFoundInRow: number;
+    currTime: number;
+  }
 }
 
-type LeaderboardUser = {
-  username: string,
-  gamesPlayed: number,
-  leastCardsFlipped: number,
-  mostFoundInRow: number,
+interface DBUser extends User {
+  packs: DBPacks;
 }
 
-export type { NewFile, Pack, DBPack, DBPacks, SignData, Event, UserData, DBUserData, LobbyInfo, Player, Message, Card, LeaderboardUser}
+interface Card {
+  id: number;
+  imgUrl: string;
+}
+
+interface SocketCard extends Card {
+  groupId: number;
+}
+
+interface LobbyInfo {
+  id: string;
+  players: {
+    id: string;
+    name: string;
+    ready: boolean;
+  }[]
+}
+
+export type { ClientUser, DBUser, SocketUser, ClientPack, DBPacks, Card, SocketCard, GameStats, LobbyInfo, Pack }

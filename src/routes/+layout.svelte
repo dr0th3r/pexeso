@@ -1,17 +1,12 @@
 <script lang="ts">
-  import Header from "../lib/components/Header.svelte";
-  import Loading from "../lib/components/Loading.svelte";
+  import { auth, db } from "$lib/firebase/firebase.client"
 
-  import { onMount } from "svelte";
-  import { auth } from "$lib/firebase/firebase.client";
-  import { authStore } from "$lib/stores/auth";
-
+  import { onAuthStateChanged } from "firebase/auth";
+  
+  import Header from "$lib/components/Header.svelte";
   import { getDoc, doc } from "firebase/firestore";
-
-  import { userData } from "$lib/stores/userData";
-  import { usersRef } from "../lib/firebase/firebase.client";
-
-  import { loadingStore } from "../lib/stores/loading";
+  import userData from "$lib/stores/userData";
+  import type { ClientUser, DBUser } from "$lib/types";
 
   import { io } from "socket.io-client";
 
@@ -19,44 +14,48 @@
 
   const socket = io();
 
-  socketStore.set(socket);
+  let socketId = "";
 
-  onMount(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      console.log(user);
+  socket.on("connect", () => {
+    if (socket.id) {
+      socketId = socket.id;
+      socketStore.set(socket);
+    }
 
-      authStore.update((curr) => ({
+    if ($userData) {
+      userData.update(curr => ({
         ...curr,
-        user: user,
-        loading: false,
-        error: null,
-      }));
-
-      if (user === null) {
-        userData.createNewUser();
-      } else {
-        let loadingTimeout = setTimeout(() => {
-          loadingStore.startLoading("Loading user data...");
-        }, 3000); //if it takes longer than 3s to load user data, show loading screen
-
-        const userDoc = await getDoc(doc(usersRef, user.uid));
-
-
-        if (userDoc.exists()) {
-          userData.setFromDBData(userDoc.data());
-        }
-
-        clearTimeout(loadingTimeout);
-
-        if ($loadingStore.isLoading) {
-          //if the timeout was shown, show 100% and close after .5s
-          loadingStore.stopLoading();
-        }
-      }
-
-      return unsubscribe;
-    });
+        socketId: socket.id
+      } as ClientUser));
+    }
   });
+
+
+  onAuthStateChanged(auth, async (user) => {
+    console.log(user);
+
+    if (user) {
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+
+      if (userDoc.exists()) {
+        userData.setFromDB(userDoc.data() as DBUser, user.uid);
+      } else {
+        console.log("No such document!");
+      }
+    }
+
+    userData.reset();
+
+
+    if (socketId) {
+      userData.update(curr => ({
+        ...curr,
+        socketId
+      } as ClientUser));
+    }
+  });
+
+  $: console.log($userData);
 </script>
 
 <svelte:head>
@@ -69,9 +68,6 @@
 <div class="slot-container">
   <slot />
 </div>
-{#if $loadingStore.isLoading}
-  <Loading />
-{/if}
 
 <style>
   .slot-container {

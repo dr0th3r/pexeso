@@ -1,131 +1,59 @@
 <script lang="ts">
-  import { fade, fly } from "svelte/transition";
-
-  import stateMachine from "$lib/stores/state";
-  const { state } = stateMachine;
-
-  import SignIn from "$lib/components/SignIn.svelte";
   import MainMenu from "$lib/components/MainMenu.svelte";
+  import SignIn from "$lib/components/SignIn.svelte";
   import Gameboard from "$lib/components/Gameboard.svelte";
-  import Stats from "$lib/components/Stats.svelte";
   import CardMenu from "$lib/components/CardMenu.svelte";
+
+  import { fade } from "svelte/transition";
+
+  import state from "$lib/stores/state";
+
+  import { onMount } from "svelte";
+  import Stats from "$lib/components/Stats.svelte";
   import LobbyMenu from "$lib/components/LobbyMenu.svelte";
-
-  import { userData } from "$lib/stores/userData";
   import { socketStore } from "$lib/stores/socket";
-  import { updateDoc, doc } from "firebase/firestore";
-
-  import { authStore } from "$lib/stores/auth";
-  import { db } from "$lib/firebase/firebase.client";
-  import Leaderboards from "../lib/components/Leaderboards.svelte";
-
-  import type { LobbyInfo } from "$lib/types";
-
-  let lobbyInfo: LobbyInfo = null;
-
-  $socketStore?.on("error", (err) => {
-    alert(`Error: ${err}`);
-  });
-
-  $socketStore?.on("start game", (data) => {
-    console.log(data);
-
-    lobbyInfo = data;
-    stateMachine.emit({ type: "startMultiplayer" });
-
-    console.log(lobbyInfo);
-  });
-
-  $socketStore?.on("show stats", (players) => {
-    if (!lobbyInfo) return;
-
-    lobbyInfo.players = players;
-    lobbyInfo = lobbyInfo;
-    stateMachine.emit({ type: "showStatistics" });
-
-    console.log(lobbyInfo);
-  });
-
-  $socketStore?.on("delete lobby", () => {
-    if (!lobbyInfo) return;
-
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });
-
-  $socketStore?.on("you left lobby", () => {
-    if (!lobbyInfo) return;
-
-    lobbyInfo = null;
-    stateMachine.emit({ type: "goToMainMenu" });
-  });
-
-  $socketStore?.on("set stats", async (stats) => {
-    console.log(stats);
-
-    $userData.leastCardsFlipped = stats.leastCardsFlipped;
-    $userData.gamesPlayed = stats.gamesPlayed;
-    $userData.mostFoundInRow = stats.mostFoundInRow;
-    $userData.mostPairsFound = stats.mostPairsFound;
-    try {
-      console.log(stats);
-      await updateDoc(doc(db, "users", $authStore.user.uid), {
-        gamesPlayed: stats.gamesPlayed,
-        leastCardsFlipped: stats.leastCardsFlipped,
-        mostFoundInRow: stats.mostFoundInRow,
-        mostPairsFound: stats.mostPairsFound,
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  });
+  import userData from "$lib/stores/userData";
+  import type { ClientUser } from "$lib/types";
 
   let transitionComplete = true;
-
-  $: if ($state) {
+  
+  const unsubscribe = state.subscribe(() => {
     transitionComplete = false;
     setTimeout(() => {
       transitionComplete = true;
-    }, 500);
+    }, 300);
+  });
+
+  onMount(() => {
+    return unsubscribe;
+  });
+
+  $: if (!$userData?.socketId && $socketStore && $socketStore.id) {
+    userData.update(curr => ({
+      ...curr,
+      socketId: $socketStore!.id
+    } as ClientUser))
   }
 </script>
 
-{#if $state === "inMainMenu" && transitionComplete}
+{#if $state === "in main menu" && transitionComplete}
   <div transition:fade={{ duration: 300 }}>
     <MainMenu />
   </div>
-{:else if $state === "playingSingleplayer" && transitionComplete}
-  <div transition:fade={{ duration: 300 }}>
-    <Gameboard lobbyInfo={null} />
-  </div>
-{:else if $state === "playingMultiplayer" && transitionComplete}
-  <div transition:fade={{ duration: 300 }}>
-    <Gameboard multiplayer={true} {lobbyInfo} />
-  </div>
-{:else if $state === "inLobbyMenu" && transitionComplete}
-  <div transition:fade={{ duration: 300 }}>
-    <LobbyMenu />
-  </div>
-{:else if $state === "inStatistics" && lobbyInfo}
-  <div transition:fade={{ duration: 300 }}>
-    <Stats
-      stats={lobbyInfo?.players}
-      multiplayer={true}
-      lobbyId={lobbyInfo?.id}
-    />
-  </div>
-{:else if $state === "inCardMenu" && transitionComplete}
-  <div transition:fade={{ duration: 300 }}>
-    <CardMenu />
-  </div>
-{:else if $state === "inSignInMenu" && transitionComplete}
+{:else if $state === "in signin menu" && transitionComplete}
   <div transition:fade={{ duration: 300 }}>
     <SignIn />
   </div>
-{:else if $state === "inLeaderboards" && transitionComplete}
-  <div transition:fade={{ duration: 300 }}>
-    <Leaderboards />
-  </div>
+{:else if $state === "playing singleplayer" && transitionComplete}
+  <Gameboard multiplayer={false}/>
+{:else if $state === "playing multiplayer" && transitionComplete}
+  <Gameboard multiplayer={true}/>
+{:else if $state === "showing statistics" && transitionComplete}
+  <Stats />
+{:else if $state === "in lobby menu" && transitionComplete}
+  <LobbyMenu />
+{:else if $state === "in pack menu" && transitionComplete}
+  <CardMenu />
 {/if}
 
 <style>

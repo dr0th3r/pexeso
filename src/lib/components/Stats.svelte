@@ -1,86 +1,77 @@
 <script lang="ts">
-  import stateMachine from "$lib/stores/state";
+  import state from "$lib/stores/state";
 
-  import { userData } from "$lib/stores/userData";
+  import gameStats from "$lib/stores/gameStats";
+
+  import userData from "$lib/stores/userData";
+
+  let readyPlayers = Object.keys($gameStats).reduce((acc, curr) => {
+    acc[curr] = false
+    
+    return acc;
+  }, {} as {
+    [key: string]: boolean
+  })
+
+  $socketStore?.on("player ready", (playerId: string) => {
+    readyPlayers[playerId] = !readyPlayers[playerId];
+  })
+
+  $socketStore?.on("player left", (playerId: string) => {
+    delete $gameStats[playerId];
+    delete readyPlayers[playerId];
+  })
 
   import { socketStore } from "$lib/stores/socket";
-  import type { Player } from "$lib/types";
-
-  export let stats: Player[]; //array of players
-  export let multiplayer = false;
-  export let lobbyId: string;
-
-  $socketStore?.on("toggle ready", (playerId) => {
-    const player = stats?.find((player) => player.id == playerId);
-
-    if (!player) return;
-
-    player.ready = !player.ready;
-
-    stats = stats; //for svelte to refresh
-  });
-
-  $socketStore?.on("player left lobby", (connectedPlayers) => {
-    stats = connectedPlayers;
-  });
 </script>
-
-{#if !multiplayer}
-  <h1>Your Statistics</h1>
-  <ul>
-    <li>
-      Most pairs found in a row in all games: {$userData.mostFoundInRow}
-    </li>
-    <li>
-      Least cards flipped per game: {$userData?.leastCardsFlipped}
-    </li>
-    <li>Games Played: {$userData.gamesPlayed}</li>
-    <button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
-      >Start New Game</button
-    >
-    <button on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
-      >Back To Menu</button
-    >
-  </ul>
-{:else if stats}
+<div class="stats-container">
   <div class="table-container">
     <table>
       <tr>
         <th>Player</th>
-        <th>Games played</th>
-        <th>Pairs found</th>
+        <th>Cards flipped</th>
         <th>Most in row</th>
-        <th>Least cards flipped</th>
-        <th>Ready to continue</th>
+        <th>Currently in row</th>
+        <th>Time</th>
+        <th>Ready</th>
       </tr>
-      {#each stats as player}
-        {@const stats = player?.stats}
+      {#each Object.entries($gameStats) as [playerId, playerStats]}
+        {@const isPlayerReady = readyPlayers[playerId]}
         <tr>
-          <td>{player?.name}</td>
-          <td>{stats?.gamesPlayed}</td>
-          <td>{stats?.pairsFound}</td>
-          <td>{stats?.mostFoundInRow}</td>
-          <td>{stats?.leastCardsFlipped}</td>
-          <td style:color={player?.ready ? "var(--success)" : "var(--error)"}
-            >{player?.ready ? "Ready" : "Not Ready"}</td
-          >
+          <td>{playerStats.name}</td>
+          <td>{playerStats.currCardsFlipped}</td>
+          <td>{playerStats.mostCardsFoundInRow}</td>
+          <td>{playerStats.currCardsFoundInRow}</td>
+          <td>{playerStats.currTime}</td>
+          <td style:color={isPlayerReady ? "var(--success)" : "var(--error)"}>{isPlayerReady}</td>
         </tr>
       {/each}
     </table>
   </div>
   <div class="btns">
-    <button on:click={() => $socketStore?.emit("toggle ready", lobbyId)}
+    <button on:click={() => {
+      if (Object.keys($gameStats).length === 1) {
+        state.emit({ type: "start singleplayer"});
+      } else {
+        $socketStore?.emit("toggle ready")
+    }}}
       >Ready</button
     >
     <button
       on:click={() => {
-        $socketStore?.emit("leave lobby", lobbyId, true);
+        state.emit({ type: "go to main menu" })
       }}>Back To Menu</button
     >
   </div>
-{/if}
+</div>
 
 <style>
+  .stats-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
   h1 {
     color: var(--text);
     font-size: 2.5rem;

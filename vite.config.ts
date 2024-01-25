@@ -1,7 +1,10 @@
 import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
+import { Server, Socket } from "socket.io";
 
-import { Server } from "socket.io";
+import type { Card, ClientPack, ClientUser, SocketCard, SocketUser, GameStats, LobbyInfo } from "./src/lib/types";
+
+const cardFlipDuration = 1000;
 
 const webSocketServer = {
   name: "webSocketServer",
@@ -10,332 +13,310 @@ const webSocketServer = {
 
     const io = new Server(server.httpServer);
 
-    class Lobby {
-      playerOnTurn = 0;
-      running = false;
-      flippedCards = [];
-      matchedCards = [];
-      players = [];
-      id;
-      pack;
-      cards;
+    let games: Game[] = [];
 
-      constructor(id, pack) {
+    class Game {
+      players: SocketUser[] = [];
+      pack: ClientPack | null = null;
+      cards: SocketCard[] = [];
+      flippedCards: SocketCard[] = [];
+      matchedCards: SocketCard[] = [];
+      id: string = "";
+      running: boolean = false;
+      playerOnTurn: number = 0;
+
+      constructor(id: string, pack: ClientPack) {
         this.id = id;
         this.pack = pack;
+        games.push(this);
       }
 
-      serialize() {
-        return {
-          id: this.id,
-          pack: this.pack,
-          players: this.players,
-        };
-      }
 
-      in() {
-        return io.in(this.id);
-      }
-
-      nextPlayer() {
-        if (++this.playerOnTurn >= this.players.length) this.playerOnTurn = 0;
-
-        this.in().emit("next player", this.playerOnTurn);
-      }
-
-      removePlayer(playerId) {
-        this.players = this.players.filter((player) => player?.id !== playerId);
-      }
-
-      resetFlippedCards() {
-        setTimeout(() => {
-          this.in().emit("reset flipped cards");
-          this.flippedCards = [];
-        }, 1000);
-      }
-
-      cardMatch(playerId) {
-        const playerStats = this.players.find(
-          (player) => player.id === playerId
-        )?.stats;
-
-        playerStats.pairsFound++;
-
-        setTimeout(() => {
-          this.in().emit("card match", this.flippedCards);
-        }, 1000);
-
-        this.matchedCards.push(...this.flippedCards);
-
-        this.resetFlippedCards();
-      }
-
-      endGame() {
-        this.players.forEach((e) => {
-          e.stats.gamesPlayed++;
-
-          console.log(e.stats.currCardsFlipped);
-
-          if (e.stats.leastCardsFlipped > e.stats.currCardsFlipped) {
-            e.stats.leastCardsFlipped = e.stats.currCardsFlipped;
-          }
-
-          if (e.stats.mostPairsFound < e.stats.pairsFound) {
-            e.stats.mostPairsFound = e.stats.pairsFound;
-          }
-
-          io.to(e.id).emit("set stats", e.stats);
-        });
-
-        this.in().emit("show stats", this.players);
-
-        this.matchedCards = [];
-        this.flippedCards = [];
-      }
-
-      generateCards() {
-        this.cards = createCards(this.pack);
-      }
-
-      joinGame(socket, username) {
+      joinGame(player: ClientUser) {
         this.players.push({
-          id: socket.id,
-          name: username,
+          ...player,
           ready: false,
           stats: {
-            leastCardsFlipped: Infinity,
+            ...player.stats,
+            leastCardsFlipped: player.stats.leastCardsFlipped || Infinity, //for some reason infinity = null for socketio
+            bestTime: player.stats.bestTime || Infinity, //same reason as line above
             currCardsFlipped: 0,
-            gamesPlayed: 0,
-            mostFoundInRow: 0,
-            currMostFoundInRow: 0,
-            mostPairsFound: 0,
-            pairsFound: 0,
-          },
-        });
+            currCardsFoundInRow: 0,
+            currTime: 0
+          }
+        })
 
-        socket.join(this.id);
+        io.in(this.id).emit("player joined", {
+          id: player.socketId,
+          name: player.name,
+          ready: false
+        })
+      }
+
+      leaveGame(socketId: string) {
+        this.players = this.players.filter(player => player.socketId !== socketId);
       }
 
       startGame() {
-        this.players.forEach((player) => {
+        this.players.forEach(player => {
+          player.ready = false;
+
           const playerStats = player.stats;
 
-          player.ready = false;
           playerStats.currCardsFlipped = 0;
-          playerStats.currMostFoundInRow = 0;
-          playerStats.pairsFound = 0;
-        });
-        this.playerOnTurn = 0;
+          playerStats.currCardsFoundInRow = 0;
+          playerStats.mostCardsFoundInRow = 0;
+          playerStats.currTime = 0;
+        })
+
+        this.flippedCards = [];
+        this.matchedCards = [];
+
         this.running = true;
-        this.generateCards();
-        this.in().emit("start game", this.serialize());
+        
+        this.cards = this.createCards(this.pack!.imgUrls.slice(0, this.pack!.chosenSize / 2)); 
+        //chosen size is total number of cards, so we need to divide it by 2 to get number of pairs
       }
 
-      leaveGame(socket, autoLobbyDelete) {
-        this.players =
-          this.players.filter((player) => player.id !== socket.id) || [];
+      createCards(imgUrls: string[]) {
+        const cards: SocketCard[] = [];
 
-        this.in().emit("player left lobby", this.players);
+        const ids = Array.from({ length: imgUrls.length * 2 }, (_, i) => i);
+        ids.sort(() => Math.random() - 0.5);
 
-        io.in(socket.id).emit("you left lobby");
-
-        if (
-          this.players.length <= 0 ||
-          (this.players.length <= 1 && autoLobbyDelete)
-        ) {
-          socket.to(this.id).emit("delete lobby");
-          io.socketsLeave(this.id);
-          delete lobbies[this.id];
-        } else {
-          socket.leave(this.id);
+        for (let i = 0; i < imgUrls.length; i++) {
+          cards.push(
+            {
+              id: ids[i * 2],
+              groupId: i,
+              imgUrl: imgUrls[i]
+            },
+            {
+              id: ids[i * 2 + 1],
+              groupId: i,
+              imgUrl: imgUrls[i]
+            }
+          )
         }
+
+        return cards;
+      }
+
+      parseStats() {
+        const player = this.players[this.playerOnTurn]
+        const playerStats = player.stats
+
+        return {
+          id: player.socketId,
+          newStats: <Partial<GameStats>>{
+            mostCardsFoundInRow: playerStats.mostCardsFoundInRow,
+            currCardsFlipped: playerStats.currCardsFlipped,
+            currCardsFoundInRow: playerStats.currCardsFoundInRow,
+            currTime: playerStats.currTime,
+          }
+        }
+      }
+
+      getInitialStats() {
+        return this.players.map(player => {
+          return {
+            id: player.socketId,
+            newStats: <GameStats>{
+              name: player.name,
+              mostCardsFoundInRow: 0,
+              currCardsFlipped: 0,
+              currCardsFoundInRow: 0,
+              currTime: 0,
+            }
+          }
+        })
+      }
+
+
+      getLobbyInfo() {
+        return {
+          id: this.id,
+          players: this.players.map(player => {
+            return {
+              id: player.socketId,
+              name: player.name,
+              ready: player.ready
+            }
+          })
+        } as LobbyInfo
       }
     }
 
-    let lobbies = {};
+    io.on("connection", (socket: Socket) => {
+      let game: Game | null = null;
 
-    io.on("connection", (socket) => {
-      let lobby = null;
+      socket.on("start singleplayer game", (player: ClientUser) => {
+        game = new Game(socket.id, 
+          player.packs.find(pack => pack.id === player.selectedPackId) || player.packs[0]);
+        game.joinGame(player);
+        game.startGame();
 
-      socket.on("create lobby", (username, singleplayer, pack) => {
-        if (lobby != null) return;
+        io.to(socket.id).emit("game started", game.getInitialStats(), game.cards.length);
+      }) 
 
-        let lobbyId = `${socket.id}_lobby`;
+      socket.on("flip card", (id: number) => {
+        if (!game //if isn't game
+          || game.flippedCards.length >= 2 //or cards are already flipped
+          || game.flippedCards[0]?.id === id //or card is already flipped
+          || socket.id !== game.players[game.playerOnTurn].socketId) return; //or it's not your turn
 
-				console.log(pack);
+        const card = game.cards.find(card => card.id === id);
+        
+        game.flippedCards.push(card!);
 
-        lobby = new Lobby(lobbyId, pack);
-        lobbies[lobbyId] = lobby;
+        const playerStats = game.players[game.playerOnTurn].stats;
 
-        lobby.joinGame(socket, username);
-        socket.emit("lobby info", lobby.serialize());
+        playerStats.currCardsFlipped += 1;
 
-        if (singleplayer) {
-          lobby.startGame();
-          socket.emit("start game", lobby.serialize());
+        if (game.flippedCards.length === 2) {
+
+          if (game.flippedCards[0].groupId === game.flippedCards[1].groupId) {
+            game.matchedCards.push(game.flippedCards[0], game.flippedCards[1]);
+
+            //updating stats
+
+            playerStats.currCardsFoundInRow += 1;   
+            if (playerStats.currCardsFoundInRow > playerStats.mostCardsFoundInRow) {
+              playerStats.mostCardsFoundInRow = playerStats.currCardsFoundInRow;
+            }
+
+            if (game.matchedCards.length === game.cards.length) { //game ended
+              //we need to parse it now because it relies on playerOnTurn
+              const currStats = game.parseStats();
+              game.running = false;
+              game.playerOnTurn = 0;
+
+              setTimeout(() => {
+                game?.players.forEach(player => {
+                  player.stats.leastCardsFlipped = Math.min(player.stats.leastCardsFlipped, player.stats.currCardsFlipped);
+                  player.stats.bestTime = Math.min(player.stats.bestTime, player.stats.currTime);
+                  player.stats.gamesPlayed++;
+                })
+
+                io.in(game!.id).emit("game ended", currStats);
+
+              }, cardFlipDuration)
+            }
+
+            setTimeout(() => {
+              io.in(game!.id).emit("cards matched", [game!.flippedCards[0], game!.flippedCards[1]], game!.parseStats());
+              game!.flippedCards = [];
+            }, cardFlipDuration)
+          } else {
+            if (!game) return;
+            //we need to parse it now because it relies on playerOnTurn
+            const currStats = game!.parseStats();
+
+            setTimeout(() => {
+              io.in(game!.id).emit("flip cards back", currStats);
+              game!.flippedCards = [];
+            }, cardFlipDuration)
+
+            game.players[game.playerOnTurn].stats.currCardsFoundInRow = 0;
+            game.playerOnTurn = (game.playerOnTurn + 1) % game.players.length;
+          }          
         }
-      });
 
-      socket.on("join lobby", (username, lobbyId) => {
-        if (lobby != null) return;
 
-        if (!lobbies[lobbyId]) {
-          socket.emit("error", "No such lobby");
-        } else if (lobbies[lobbyId]?.running) {
-          console.log("user attempted to join running lobby");
-          socket.emit("error", "You attempted to join running lobby");
-        } else {
-          lobby = lobbies[lobbyId];
+        io.in(game!.id).emit("card flipped", card, game!.parseStats());
+      })
 
-          lobby.joinGame(socket, username);
-          socket.emit("lobby info", lobby.serialize());
-          lobby.in().emit("join lobby", lobby.players);
-        }
+      socket.on("create multiplayer game", (player: ClientUser) => {
+        game = new Game(`${socket.id}${Math.floor(Math.random() * 100)}_lobby`, //still not 100% random but safe almost always
+          player.packs.find(pack => pack.id === player.selectedPackId) || player.packs[0]);
+        game.joinGame(player);
+
+        socket.join(game.id);
+
+        const lobbyInfo = game.getLobbyInfo();
+
+        io.to(socket.id).emit("game created", lobbyInfo);
+      })
+
+      socket.on("join multiplayer game", (player: ClientUser, gameId: string) => {
+        game = games.find(game => game.id === gameId) || null;
+        if (!game || game?.running) return; //add sending error to client later
+
+        game.joinGame(player);
+
+        socket.join(game.id);
+        io.to(socket.id).emit("game joined", game.getLobbyInfo());
       });
 
       socket.on("toggle ready", () => {
-        if (lobby == null) return;
+        let readyCount = 0;
 
-        const players = lobby.players;
+        game?.players.map(player => {
+          if (player.ready) readyCount++;
 
-        const player = players?.find((player) => player.id === socket.id);
+          if (player.socketId === socket.id) {
+            if (player.ready) {
+              readyCount--;
+            } else {
+              readyCount++;
+            }
+            player.ready = !player.ready;
+            
+          }
+          return player;
+        })
 
-        player.ready = !player.ready;
-
-        lobby.in().emit("toggle ready", socket.id);
-
-        if (!players.find((player) => !player.ready)) {
-          lobby.startGame();
+        if (readyCount > 1 && readyCount === game?.players.length) {
+          io.in(game!.id).emit("start game");
+          game!.startGame();
+          setTimeout(() => {
+            io.in(game!.id).emit("game started", game!.getInitialStats(), game.cards.length);
+          }, 500) //there is transition ongoing
         }
-      });
 
-      socket.on("chat", (message) => {
-        if (lobby == null) return;
 
-        const playerName = lobby?.players?.find(player => player?.id === socket?.id)?.name
+        io.in(game!.id).emit("player ready", socket.id);
+      })
 
-        lobby.in().emit("chat", playerName, message);
-      });
+      socket.on("send message", (msg: string) => {
+        if (!game) return;
 
-      socket.on("set stats", (stats) => {
-        if (lobby === null) return;
+        const playerName = game.players.find(player => player.socketId === socket.id)?.name;
 
-        let playerStats = lobby.players?.find(
-          (player) => player.id === socket.id
-        ).stats;
+        if (!playerName) return;
 
-        playerStats.leastCardsFlipped = stats.leastCardsFlipped || Infinity;
-        playerStats.gamesPlayed = stats.gamesPlayed || 0;
-        playerStats.mostFoundInRow = stats.mostFoundInRow || 0;
-        playerStats.mostPairsFound = stats.mostPairsFound || 0;
+        io.in(game.id).emit("message sent", { name: playerName, msg });
+      })
 
-        lobby.in().emit("set temp stats", socket.id, playerStats);
-      });
+      socket.on("leave game", (deleteOnOnePlayer: boolean) => {
 
-      socket.on("flip card", (index) => {
-        if (lobby == null) return;
+        if (!game) return;
 
-        if (lobby.players[lobby.playerOnTurn]?.id != socket.id) return;
+        game.leaveGame(socket.id);
 
-        if (lobby.flippedCards.length >= 2) return;
+        if (game.players.length === 0) {
+          games = games.filter(g => g.id !== game!.id);
 
-        // Cards already visible
-        if (
-          lobby.flippedCards.find((e) => e.cardId == index) ||
-          lobby.matchedCards.find((e) => e.cardId == index)
-        )
+          io.in(game.id).emit("player left", socket.id); 
+          socket.leave(game.id);
+          game = null;
           return;
+        } else if (deleteOnOnePlayer && game.players.length === 1) {
+          games = games.filter(g => g.id !== game!.id);
 
-        const card = lobby.cards.find((e) => e.cardId == index);
-        lobby.flippedCards.push(card);
-        lobby.in().emit("flip card", card);
-
-        const player = lobby.players[lobby.playerOnTurn];
-
-        const playerStats = player.stats;
-        playerStats.currCardsFlipped++;
-
-        if (lobby.flippedCards.length == 2) {
-          if (!lobby.flippedCards.find((e) => e.groupId != card.groupId)) {
-            console.log(playerStats);
-            if (playerStats.mostFoundInRow < ++playerStats.currMostFoundInRow) {
-              playerStats.mostFoundInRow = playerStats.currMostFoundInRow;
-            }
-
-            lobby.cardMatch(socket.id);
-            if (lobby.matchedCards.length == lobby.cards.length) {
-              lobby.endGame();
-            }
-
-            lobby.in().emit("set temp stats", player.id, playerStats);
-            return;
-          }
-
-          playerStats.currMostFoundInRow = 0;
-
-          lobby.in().emit("set temp stats", player.id, playerStats);
-          lobby.resetFlippedCards();
-          lobby.nextPlayer();
+          io.in(game.id).emit("game deleted");
+          socket.leave(game.id);
+          game.players = [];
+          game = null;
+          return;
         }
-      });
 
-      socket.on("leave lobby", (autoLobbyDelete = false) => {
-        if (lobby == null) return;
-
-        lobby.leaveGame(socket, autoLobbyDelete);
-        lobby = null;
-      });
-
-      socket.on("disconnect", () => {
-        if (lobby !== null) {
-          if (lobby.players[lobby.playerOnTurn]?.id === socket?.id) {
-            //if the disconnected player was on turn, we don't want any cards to remain flipped
-            lobby.in().emit("reset flipped cards");
-          }
-
-          lobby.removePlayer(socket.id);
-
-          if (lobby.players.length <= 1) {
-            //you shouldn't be able to play in 1 player
-            lobby.in().emit("delete lobby");
-            io.socketsLeave(lobby.id);
-          } else {
-            if (lobby.playerOnTurn > lobby.players.length - 1) {
-              lobby.playerOnTurn = 0;
-              lobby.in().emit("next player", 0);
-            }
-
-            lobby.in().emit("player left game", lobby.players);
-          }
-        }
-      });
-    });
+        io.in(game.id).emit("player left", socket.id);
+      })
+    })
   },
 };
 
-function createCards(imgUrls) {
-  const cards = [];
-  const ids = Array.from(Array(imgUrls.length * 2), (x, i) => i);
-  ids.sort(() => Math.random() - 0.5);
-
-  for (let i = 0; i < imgUrls.length; i++) {
-    cards.push(
-      //we have to create pairs of cards - that means 2 cards per 1 img
-      {
-        cardId: ids[i * 2],
-        groupId: i,
-        imgUrl: imgUrls[i],
-      },
-      {
-        cardId: ids[i * 2 + 1],
-        groupId: i,
-        imgUrl: imgUrls[i],
-      }
-    );
-  }
-
-  return cards;
-}
 
 export default defineConfig({
   plugins: [sveltekit(), webSocketServer],

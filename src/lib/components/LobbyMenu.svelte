@@ -1,102 +1,86 @@
 <script lang="ts">
-  import { authStore } from "../stores/auth";
-
-  import { userData } from "../stores/userData";
-
-  import defaultPacks from "$lib/defaultPacks";
-
-  import stateMachine from "../stores/state";
   import { fade } from "svelte/transition";
 
+  import state from "$lib/stores/state";
+
   import { socketStore } from "$lib/stores/socket";
+  import userData from "$lib/stores/userData";
+
   import type { LobbyInfo } from "$lib/types";
 
   let localState = "main";
-  let lobbyInfo: LobbyInfo = null;
 
-  $: if (lobbyInfo === null) {
-    localState = "main";
-  }
+  let lobbyInfo: LobbyInfo | null = null;
 
-  let imgs = $userData?.chosenPack?.imgUrls || defaultPacks[0]?.imgUrls;
-
-  $socketStore?.on("lobby info", (data) => {
-    lobbyInfo = data;
+  $socketStore?.on("game created", (newLobbyInfo: LobbyInfo) => {
+    lobbyInfo = newLobbyInfo;
     localState = "inLobby";
-  });
+  })
 
-  $socketStore?.on("join lobby", (players) => {
-    if (!lobbyInfo) return;
-
-    lobbyInfo.players = players;
+  $socketStore?.on("game joined", (newLobbyInfo: LobbyInfo) => {
+    lobbyInfo = newLobbyInfo;
     localState = "inLobby";
-  });
+  })
 
-  $socketStore?.on("player left lobby", (connectedPlayers) => {
-    if (!lobbyInfo) return;
+  $socketStore?.on("player joined", ((player: {
+    id: string;
+    name: string;
+    ready: boolean;
+  }) => {
+    lobbyInfo!.players = [...lobbyInfo!.players, player];
+  }))
 
-    lobbyInfo.players = connectedPlayers;
-    lobbyInfo = lobbyInfo;
-  });
-
-  $socketStore?.on("toggle ready", (playerId) => {
-    const player = lobbyInfo?.players.find((player) => player.id == playerId);
-
-    if (!player) {
-      return;
+  $socketStore?.on("player left", (playerId: string) => {
+    lobbyInfo!.players = lobbyInfo!.players.filter(player => player.id !== playerId);
+    if (playerId === $socketStore?.id) {
+      localState = "main";
     }
+  })
 
-    player.ready = !player.ready;
-    lobbyInfo = lobbyInfo; //for svelte to refresh
-  });
+  $socketStore?.on("player ready", (playerId: string) => {
+    lobbyInfo!.players = lobbyInfo!.players.map(player => {
+      if (player.id === playerId) {
+        player.ready = !player.ready;
+      }
 
-  let username = "";
-  let joinLobbyId = "";
+      return player;
+    })
+  })
 
-  $: if ($authStore.user) {
-    username = $userData.displayName;
+  $socketStore?.on("start game", () => {
+    state.emit({ type: "start multiplayer" })
+  })
+
+  let username = ""
+  let gameId = ""
+
+  let transitionComplete = true;  
+
+  $: if (localState) {
+    transitionComplete = false;
+    setTimeout(() => {
+      transitionComplete = true;
+    }, 300);
   }
 
   let showCoppiedTooltip = false;
 
-  function createLobby() {
-    if (username === "") {
-      alert("You must provide a username!");
-      return;
-    } else if (imgs.length < 2) {
-      alert("Invalid pexeso pack!");
-    }
-
-    $socketStore?.emit("create lobby", username, false, imgs);
+  function createGame() {
+    $socketStore?.emit("create multiplayer game", {
+      ...$userData,
+      name: username
+    })
   }
 
-  function joinLobby() {
-    if (username === "") {
-      alert("You must provide a username!");
-      return;
-    } else if (joinLobbyId === "") {
-      alert("You must provide an id of the lobby you want to join!");
-      return;
-    }
-
-    $socketStore?.emit("join lobby", username, joinLobbyId);
+  function joinGame() {
+    $socketStore?.emit("join multiplayer game", {
+      ...$userData,
+      name: username
+    }, gameId)
   }
 
   function leaveLobby() {
-    $socketStore?.emit("leave lobby", lobbyInfo?.id, false);
-    localState = "main";
-  }
-
-  let transitionComplete = true;
-  let isFirstTransition = true;
-
-  $: if (localState && !isFirstTransition) {
-    transitionComplete = false;
-    setTimeout(() => {
-      transitionComplete = true;
-    }, 500);
-  } else if (localState && isFirstTransition) {
-    isFirstTransition = false;
+    $socketStore?.emit("leave game", false);
   }
 </script>
 
@@ -106,7 +90,7 @@
       <h2>Lobby Menu</h2>
       <button
         class="home-btn"
-        on:click={() => stateMachine.emit({ type: "goToMainMenu" })}
+        on:click={() => state.emit({ type: "go to main menu", sendLeaveGame: false})}
         >Go To Main Menu</button
       >
     </header>
@@ -121,22 +105,22 @@
   </div>
 {:else if localState == "createMenu" && transitionComplete}
   <div class="container" transition:fade={{ duration: 300 }}>
-    <input placeholder="Username..." bind:value={username} />
-    <button on:click={createLobby} class="create-join-btn">Create</button>
+    <input placeholder="Username..." bind:value={username} required/>
+    <button on:click={createGame} class="create-join-btn">Create</button>
     <button class="create-join-btn" on:click={() => (localState = "main")}
       >Go Back</button
     >
   </div>
 {:else if localState == "joinMenu" && transitionComplete}
   <div class="container" transition:fade={{ duration: 300 }}>
-    <input placeholder="Username..." bind:value={username} />
-    <input placeholder="Lobby Id..." bind:value={joinLobbyId} />
-    <button on:click={joinLobby} class="create-join-btn">Join</button>
+    <input placeholder="Username..." bind:value={username} required/>
+    <input placeholder="Lobby Id..." bind:value={gameId} required/>
+    <button on:click={joinGame} class="create-join-btn">Join</button>
     <button class="create-join-btn" on:click={() => (localState = "main")}
       >Go Back</button
     >
   </div>
-{:else if localState == "inLobby" && lobbyInfo && transitionComplete}
+{:else if localState == "inLobby" && transitionComplete}
   <div class="lobby" transition:fade={{ duration: 300 }}>
     <h2>
       Lobby:&nbsp;
@@ -181,7 +165,7 @@
     </h2>
     <h3>Players</h3>
     <ul>
-      {#each lobbyInfo?.players as player}
+      {#each lobbyInfo?.players || [] as player}
         <li>
           <span>
             {player.name}
@@ -194,7 +178,7 @@
     </ul>
     <button
       on:click={() => {
-        $socketStore?.emit("toggle ready", lobbyInfo?.id);
+        $socketStore?.emit("toggle ready");
       }}>Ready</button
     >
     <button on:click={leaveLobby}>Leave</button>

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import stateMachine from "$lib/stores/state";
+  import state from "$lib/stores/state";
 </script>
 
-<button on:click={() => stateMachine.emit({ type: "startSingleplayer" })}
+<button on:click={() => state.emit({ type: "start singleplayer" })}
   >Singleplayer</button
 >
-<button on:click={() => stateMachine.emit({ type: "goToLobbyMenu" })}
+<button on:click={() => state.emit({ type: "go to lobby menu" })}
   >Multiplayer</button
 >
-<button on:click={() => stateMachine.emit({ type: "goToCardMenu" })}
+<button on:click={() => state.emit({ type: "go to pack menu" })}
   >Manage Packs</button
 >
-<button on:click={() => stateMachine.emit({ type: "goToLeaderboards" })}
+<button on:click={() => state.emit({ type: "goToLeaderboards" })}
   >Leaderboards</button
 >
 
