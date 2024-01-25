@@ -33,6 +33,8 @@ function gameMachine(state: string, event: {
                 return "in lobby menu";
             } else if (event.type === "go to pack menu") {
                 return "in pack menu";
+            } else if (event.type === "go to leaderboards") {
+                return "in leaderboards"
             }
         case "in signin menu":
             if (event.type === "go to main menu") {
@@ -69,6 +71,10 @@ function gameMachine(state: string, event: {
                 return "playing multiplayer";
             }
         case "in pack menu":
+            if (event.type === "go to main menu") {
+                return "in main menu";
+            }
+        case "in leaderboards":
             if (event.type === "go to main menu") {
                 return "in main menu";
             }

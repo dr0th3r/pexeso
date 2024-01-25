@@ -14,6 +14,7 @@
   import { socketStore } from "$lib/stores/socket";
   import userData from "$lib/stores/userData";
   import type { ClientUser } from "$lib/types";
+  import Leaderboards from "$lib/components/Leaderboards.svelte";
 
   let transitionComplete = true;
   
@@ -54,6 +55,8 @@
   <LobbyMenu />
 {:else if $state === "in pack menu" && transitionComplete}
   <CardMenu />
+{:else if $state === "in leaderboards" && transitionComplete}
+  <Leaderboards />
 {/if}
 
 <style>

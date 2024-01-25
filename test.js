@@ -3,3 +3,10 @@ https://firebasestorage.googleapis.com/v0/b/pexeso-6863d.appspot.com/o/packs%2Fa
 
 const newUrl = url.split('?')[0].split('packs')[1].split('%2F').slice(-1)[0]
 console.log(newUrl)
+
+const dict = {
+    name: "idk",
+    stats: {
+        gamesPlayed: 0
+    }
+}

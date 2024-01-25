@@ -11,7 +11,7 @@
 <button on:click={() => state.emit({ type: "go to pack menu" })}
   >Manage Packs</button
 >
-<button on:click={() => state.emit({ type: "goToLeaderboards" })}
+<button on:click={() => state.emit({ type: "go to leaderboards" })}
   >Leaderboards</button
 >
 

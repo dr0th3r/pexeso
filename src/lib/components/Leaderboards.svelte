@@ -4,48 +4,54 @@
   import { usersRef } from "$lib/firebase/firebase.client";
   import { query, orderBy, limit, getDocs } from "firebase/firestore";
 
-  import { loadingStore } from "$lib/stores/loading";
-
-  import stateMachine from "$lib/stores/state";
-
-  import type { LeaderboardUser } from "$lib/types";
+  import state from "$lib/stores/state";
 
   let users: LeaderboardUser[] = [];
 
-  type Category = keyof LeaderboardUser;
+  $: sortedUsers = users.sort((a: LeaderboardUser, b: LeaderboardUser) => {
+    if (sortCategory === "name") {
+      return a.name > b.name ? 1 : -1;
+    } else {
+      return a.stats[sortCategory] > b.stats[sortCategory] ? 1 : -1;
+    }
+  })
 
-  let categories: Category[] = [
-    "username",
+  interface LeaderboardUser {
+    name: string;
+    stats: {
+      gamesPlayed: number;
+      leastCardsFlipped: number;
+      mostCardsFoundInRow: number;
+    }
+  }
+
+  type Category = "name" | "gamesPlayed" | "leastCardsFlipped" | "mostCardsFoundInRow";
+
+  const categories: Category[] = [
+    "name",
     "gamesPlayed",
     "leastCardsFlipped",
-    "mostFoundInRow",
-  ];
+    "mostCardsFoundInRow"
+  ]
 
   onMount(async () => {
     const snapshot = await getDocs(
-      query(usersRef, orderBy("gamesPlayed"), limit(10))
+      query(usersRef, orderBy("name"), limit(10))
     );
     users = snapshot.docs.map((doc) => {
       const docData = doc.data();
       console.log(docData.gamesPlayed);
 
       return {
-        username: docData.displayName,
-        gamesPlayed: docData.gamesPlayed || 0,
-        leastCardsFlipped: docData.leastCardsFlipped,
-        mostFoundInRow: docData.mostFoundInRow,
+        name: docData.name,
+        stats: {
+          gamesPlayed: docData.stats.gamesPlayed || 0,
+          leastCardsFlipped: docData.stats.leastCardsFlipped,
+          mostCardsFoundInRow: docData.stats.mostCardsFoundInRow,
+        }
       };
     });
   });
-
-  $: if (users.length === 0) {
-    loadingStore.startLoading("Loading leaderboards...");
-  } else {
-    loadingStore.updateProgress(1);
-    setTimeout(() => {
-      loadingStore.stopLoading();
-    }, 500);
-  }
 
   let sortCategory: Category = "gamesPlayed";
   let isDescending = true;
@@ -81,17 +87,17 @@
             </th>
           {/each}
         </tr>
-        {#each users.sort((a, b) => (a[sortCategory] > b[sortCategory] ? 1 : -1) * (isDescending ? -1 : 1)) as user}
+        {#each sortedUsers as user}
           <tr>
             {#each categories as category}
-              <td>{user[category]}</td>
+              <td>{category === "name" ? user.name : user.stats[category]}</td>
             {/each}
           </tr>
         {/each}
       </thead>
     </table>
   </div>
-  <button on:click={() => stateMachine.emit({ type: "goToMainMenu" })}>
+  <button on:click={() => state.emit({ type: "go to main menu" })}>
     Back to Main Menu
   </button>
 </main>
