@@ -72,7 +72,7 @@
     state.emit({ type: "start multiplayer" })
   })
 
-  let username = ""
+  let username = $userData?.dbId ? $userData?.name : "";
   let gameId = ""
 
   let transitionComplete = true;  
