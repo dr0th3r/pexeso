@@ -10,6 +10,14 @@
 
   let localState = "main";
 
+  let canToggleReady = true;
+
+  $: if (canToggleReady === false) {
+    setTimeout(() => {
+      canToggleReady = true;
+    }, 100);
+  }
+
   let lobbyInfo: LobbyInfo | null = null;
 
   $socketStore?.on("game created", (newLobbyInfo: LobbyInfo) => {
@@ -18,6 +26,8 @@
   })
 
   $socketStore?.on("game joined", (newLobbyInfo: LobbyInfo) => {
+    console.log("game joined")
+
     lobbyInfo = newLobbyInfo;
     localState = "inLobby";
   })
@@ -27,7 +37,15 @@
     name: string;
     ready: boolean;
   }) => {
-    lobbyInfo!.players = [...lobbyInfo!.players, player];
+    console.log("player joined")
+
+    if (!lobbyInfo?.players.some(p => p.id === player.id)) {
+      lobbyInfo!.players = [...lobbyInfo!.players, player];
+    } else {
+      console.log(lobbyInfo.players, player)
+    }
+
+    lobbyInfo = lobbyInfo;
   }))
 
   $socketStore?.on("player left", (playerId: string) => {
@@ -38,6 +56,9 @@
   })
 
   $socketStore?.on("player ready", (playerId: string) => {
+    if (!canToggleReady) return; //needed to prevent multiple player ready emits
+    canToggleReady = false;
+
     lobbyInfo!.players = lobbyInfo!.players.map(player => {
       if (player.id === playerId) {
         player.ready = !player.ready;

@@ -6,6 +6,8 @@ import type { Card, ClientPack, ClientUser, SocketCard, SocketUser, GameStats, L
 
 const cardFlipDuration = 1000;
 
+let round = 0;
+
 const webSocketServer = {
   name: "webSocketServer",
   configureServer(server) {
@@ -33,6 +35,8 @@ const webSocketServer = {
 
 
       joinGame(player: ClientUser) {
+        if (this.players.some(p => p.socketId === player.socketId)) return;
+
         this.players.push({
           ...player,
           ready: false,
@@ -235,7 +239,7 @@ const webSocketServer = {
 
         const lobbyInfo = game.getLobbyInfo();
 
-        io.to(socket.id).emit("game created", lobbyInfo);
+        socket.emit("game created", lobbyInfo);
       })
 
       socket.on("join multiplayer game", (player: ClientUser, gameId: string) => {
@@ -245,7 +249,7 @@ const webSocketServer = {
         game.joinGame(player);
 
         socket.join(game.id);
-        io.to(socket.id).emit("game joined", game.getLobbyInfo());
+        socket.emit("game joined", game.getLobbyInfo());
       });
 
       socket.on("toggle ready", () => {
@@ -270,10 +274,9 @@ const webSocketServer = {
           io.in(game!.id).emit("start game");
           game!.startGame();
           setTimeout(() => {
-            io.in(game!.id).emit("game started", game!.getInitialStats(), game.cards.length);
+            io.in(game!.id).emit("game started", game!.getInitialStats(), game!.cards.length);
           }, 500) //there is transition ongoing
         }
-
 
         io.in(game!.id).emit("player ready", socket.id);
       })
@@ -305,13 +308,25 @@ const webSocketServer = {
           games = games.filter(g => g.id !== game!.id);
 
           io.in(game.id).emit("game deleted");
-          socket.leave(game.id);
+
+          for (const player of game.players) {
+            io.sockets.sockets.get(player.socketId)?.leave(game.id);
+          }
+
           game.players = [];
           game = null;
           return;
         }
 
         io.in(game.id).emit("player left", socket.id);
+      })
+
+      socket.on("disconnect", () => {
+        if (!game || game?.players?.length !== 0) return;
+
+        io.in(game.id).emit("player left", socket.id);
+        socket.leave(game.id);
+        game = null;
       })
     })
   },
