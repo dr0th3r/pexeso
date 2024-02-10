@@ -1,38 +1,21 @@
-# create-svelte
+# Aboout
+This app was created for a competetion organized by **[Remante]("https://www.remante.com/")**. 
+We would like to thank them for an opurtinity to participate as it greatly improved both our technical and soft skills.
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
-
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+# How to run
+1. You'll need a [Firebase account]("https://firebase.google.com/")
+2. You'll need to create a new project on Firebase
+3. You'll need to setup authentication on Firebase and enable writing and reading in rules (in DB and in Storage)
+4. You'll need to create an .env file in root directory of this clonned project and add enviroment variables 
+which you can find in project settings in Firebase
 ```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+VITE_APIKEY=
+VITE_AUTHDOMAIN=
+VITE_PROJECTID=
+VITE_STORAGEBUCKET=
+VITE_MESSAGINGSENDERID=
+VITE_APPID=
+VITE_MEASUREMENTID=
 ```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+5. npm run dev -- --open
+6. **Enjoy Playing!**
