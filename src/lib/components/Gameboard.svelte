@@ -48,7 +48,6 @@
     id: string;
     newStats: Partial<GameStats>
   }) => {
-    console.log("stats: ", stats);
     flippedCards = [...flippedCards, card];
 
     $gameStats[stats.id] = {
@@ -106,8 +105,6 @@
     }
 
     if ($userData.dbId) {
-      console.log("updating user")
-
       await updateDoc(doc(db, "users", $userData.dbId), {
         stats: $userData.stats
       })
@@ -124,7 +121,6 @@
   })
 
   $socketStore?.on("game deleted", () => {
-    console.log("game deleted")
     state.emit({ type: "go to main menu", sendLeaveGame: false })
   })
 
@@ -162,8 +158,6 @@
   }
 
   if (!multiplayer) {
-    console.log($userData);
-
     $socketStore?.emit("start singleplayer game", $userData);
   }
 </script>

@@ -40,8 +40,7 @@
     );
     users = snapshot.docs.map((doc) => {
       const docData = doc.data();
-      console.log(docData.gamesPlayed);
-
+      
       return {
         name: docData.name,
         stats: {

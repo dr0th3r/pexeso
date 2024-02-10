@@ -26,8 +26,6 @@
   })
 
   $socketStore?.on("game joined", (newLobbyInfo: LobbyInfo) => {
-    console.log("game joined")
-
     lobbyInfo = newLobbyInfo;
     localState = "inLobby";
   })
@@ -37,8 +35,6 @@
     name: string;
     ready: boolean;
   }) => {
-    console.log("player joined")
-
     if (!lobbyInfo?.players.some(p => p.id === player.id)) {
       lobbyInfo!.players = [...lobbyInfo!.players, player];
     } else {

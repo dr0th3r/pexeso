@@ -10,7 +10,7 @@
 
   let errMsg = "";
 
-  function handleSubmit(e: Event) {
+  async function handleSubmit(e: Event) {
     const formData = new FormData(e.target as HTMLFormElement);
 
     const { email, password, username, confirm_password } = Object.fromEntries(
@@ -22,16 +22,26 @@
       confirm_password: string | undefined;
     };
 
-    if (signIn) {
-      auth.signIn(null, email, password);
-    } else if (username && password && password === confirm_password) {
-      auth.signUp({
-        ...userData.createTemplate(),
-        name: username
-      }, email, password);
+    try {
+      if (signIn) {
+        await auth.signIn(null, email, password);
+      } else if (username && password && password === confirm_password) {
+        await auth.signUp({
+          ...userData.createTemplate(),
+          name: username
+        }, email, password);
+      }
+  
+      state.emit({ type: "go to main menu" });
+    } catch (error) {
+      if (!(error instanceof Error)) {
+        console.log(error);
+        return;
+      }
+      if (error.message) {
+        errMsg = error.message;
+      }
     }
-
-    state.emit({ type: "go to main menu" });
   }
 </script>
 

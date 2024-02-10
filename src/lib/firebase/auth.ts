@@ -29,7 +29,8 @@ export const signUp = async (initialData: ClientUser | null, email: string, pass
             packs: [...initialData.packs, ...defaultPacks]
         });
     } catch (error) {
-        console.error(error);
+        if (typeof error === 'string') throw new Error(error);
+        if (error instanceof Error) throw error;
     }
 }
 
@@ -91,7 +92,8 @@ export const signIn = async (newData: ClientUser | null, email: string, password
         }
         
     } catch (error) {
-        console.error(error);
+        if (typeof error === 'string') throw new Error(error);
+        if (error instanceof Error) throw error;
     }
 }
 
@@ -100,7 +102,8 @@ export const logOut = async () => {
         await signOut(auth);
         userData.reset();
     } catch (error) {
-        console.error(error);
+        if (typeof error === 'string') throw new Error(error);
+        if (error instanceof Error) throw error;
     }
 }
 
@@ -134,7 +137,7 @@ async function movePacks(packs: ClientPack[], uid: string) {
                 } catch (error) {
                     rej(error);
                 }
-            })
+        })
         }))
     }))
 

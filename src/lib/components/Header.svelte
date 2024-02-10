@@ -17,9 +17,14 @@
   </h1>
   <button
     class="profile-img-placeholder"
-    on:click={() => {
+    on:click={async () => {
       if ($userData?.dbId) {
-        logOut();
+        try {
+          //we don't have to reset user because it will do so automatically in +layout.svelte in onAuthStateChanged
+          await logOut();
+        } catch (error) {
+          console.log(error);
+        }
       } else {
         state.emit({ type: "go to singin menu" });
       }
@@ -59,15 +64,4 @@
     padding: 0.5rem;
     font-size: 1.1rem;
   }
-
-  /*   .profile-img-placeholder {
-    border: none;
-    outline: none;
-    height: 2.5rem;
-    width: 2.5rem;
-    border-radius: 100%;
-    margin-left: auto;
-    background-color: var(--secondary);
-    cursor: pointer;
-  } */
 </style>

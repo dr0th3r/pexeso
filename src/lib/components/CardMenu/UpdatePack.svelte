@@ -61,21 +61,13 @@
         const packRef = ref(storage, `packs/${$userData.dbId || $userData.name}/${modifiedPack.id}`)
 
         try {
-
-            console.log("uploading")
             const uploadedImgUrls = await compressAndUploadToDB(packRef)
             if (uploadedImgUrls.length === 0) {
                 errorMsg = "Error uploading images, please try agian later"
                 return;
             }
-
-            console.log("removing")
             await removeImgsFromDB(packRef)
-    
-            console.log(modifiedPack)
-
-            console.log(uploadedImgUrls)
-
+  
             modifiedPack = {
                 ...modifiedPack,
                 name: newPackTitle,
@@ -84,11 +76,8 @@
             }
 
             if ($userData?.dbId) {
-                console.log("updating user")
                 await updateUserPack(modifiedPack)
             }
-
-            console.log(modifiedPack)
 
             const packIndex = $userData.packs.findIndex(pack => pack.id === modifiedPack!.id)
 

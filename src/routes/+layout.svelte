@@ -32,8 +32,6 @@
 
 
   onAuthStateChanged(auth, async (user) => {
-    console.log(user);
-
     if (user) {
       const userDoc = await getDoc(doc(db, "users", user.uid));
 
@@ -42,9 +40,9 @@
       } else {
         console.log("No such document!");
       }
+    } else {
+      userData.reset();
     }
-
-    userData.reset();
 
 
     if (socketId) {
@@ -54,8 +52,6 @@
       } as ClientUser));
     }
   });
-
-  $: console.log($userData);
 </script>
 
 <svelte:head>

@@ -265,7 +265,6 @@ const webSocketServer = {
               readyCount++;
             }
             player.ready = !player.ready;
-            
           }
           return player;
         })
