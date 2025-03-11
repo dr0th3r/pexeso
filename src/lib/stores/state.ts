@@ -1,19 +1,18 @@
 import { writable } from "svelte/store";
-
 import gameStats  from "$lib/stores/gameStats";
 
 import { socketStore } from "./socket";
 import type { Socket } from "socket.io-client";
 
 let socket: Socket | null = null;
-socketStore.subscribe(value => socket = value);
+socketStore.subscribe((value: Socket|null) => socket = value);
 
 const state = function(stateMachine: (state: string, event: { type: string }) => string) {
     const { subscribe, update } = writable("in main menu");
 
     return {
         subscribe,
-        emit: (event: { type: string, sendLeaveGame?: boolean }) => update(curr => stateMachine(curr, event)),
+        emit: (event: { type: string, sendLeaveGame?: boolean }) => update((curr: string) => stateMachine(curr, event)),
     }
 }(gameMachine);
 
@@ -79,7 +78,6 @@ function gameMachine(state: string, event: {
                 return "in main menu";
             }
         default:
-            console.log(event.type)
             return state;
     }
 }
